@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.dynamic.DynamicArticleManagementMapper">
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.dynamic.DynamicArticleManagement">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="title" jdbcType="VARCHAR" property="title" />
+    <result column="college_id" jdbcType="VARCHAR" property="collegeId" />
+    <result column="source" jdbcType="INTEGER" property="source" />
+    <result column="contributor_id" jdbcType="VARCHAR" property="contributorId" />
+    <result column="contribute_time" jdbcType="TIMESTAMP" property="contributeTime" />
+    <result column="check_status" jdbcType="INTEGER" property="checkStatus" />
+    <result column="reviewer_id" jdbcType="VARCHAR" property="reviewerId" />
+    <result column="check_time" jdbcType="TIMESTAMP" property="checkTime" />
+    <result column="check_discription" jdbcType="VARCHAR" property="checkDiscription" />
+    <result column="cancel_id" jdbcType="VARCHAR" property="cancelId" />
+    <result column="cancel_time" jdbcType="TIMESTAMP" property="cancelTime" />
+    <result column="cancel_discription" jdbcType="VARCHAR" property="cancelDiscription" />
+    <result column="praise_amount" jdbcType="INTEGER" property="praiseAmount" />
+    <result column="browsing_amount" jdbcType="VARCHAR" property="browsingAmount" />
+    <result column="pic_url" jdbcType="VARCHAR" property="picUrl" />
+    <result column="plugin_url" jdbcType="VARCHAR" property="pluginUrl" />
+    <result column="top_sort" jdbcType="INTEGER" property="topSort"/>
+  </resultMap>
+  <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="com.partybuilding.webserver.entity.dynamic.DynamicArticleManagement">
+    <result column="content" jdbcType="LONGVARCHAR" property="content" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, title, college_id, source, contributor_id, contribute_time, check_status, reviewer_id, 
+    check_time, check_discription, cancel_id, cancel_time, cancel_discription, praise_amount, 
+    browsing_amount, pic_url, plugin_url
+  </sql>
+  <sql id="Blob_Column_List">
+    content
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="ResultMapWithBLOBs">
+    select 
+    <include refid="Base_Column_List" />
+    ,
+    <include refid="Blob_Column_List" />
+    from dynamic_article_management
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from dynamic_article_management
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.partybuilding.webserver.entity.dynamic.DynamicArticleManagement">
+    insert into dynamic_article_management (id, title, college_id, 
+      source, contributor_id, contribute_time, 
+      check_status, reviewer_id, check_time, 
+      check_discription, cancel_id, cancel_time, 
+      cancel_discription, praise_amount, browsing_amount, 
+      pic_url, plugin_url, content
+      )
+    values (#{id,jdbcType=VARCHAR}, #{title,jdbcType=VARCHAR}, #{collegeId,jdbcType=VARCHAR}, 
+      #{source,jdbcType=INTEGER}, #{contributorId,jdbcType=VARCHAR}, #{contributeTime,jdbcType=TIMESTAMP}, 
+      #{checkStatus,jdbcType=INTEGER}, #{reviewerId,jdbcType=VARCHAR}, #{checkTime,jdbcType=TIMESTAMP}, 
+      #{checkDiscription,jdbcType=VARCHAR}, #{cancelId,jdbcType=VARCHAR}, #{cancelTime,jdbcType=TIMESTAMP}, 
+      #{cancelDiscription,jdbcType=VARCHAR}, #{praiseAmount,jdbcType=INTEGER}, #{browsingAmount,jdbcType=VARCHAR}, 
+      #{picUrl,jdbcType=VARCHAR}, #{pluginUrl,jdbcType=VARCHAR}, #{content,jdbcType=LONGVARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.dynamic.DynamicArticleManagement">
+    insert into dynamic_article_management
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="title != null">
+        title,
+      </if>
+      <if test="collegeId != null">
+        college_id,
+      </if>
+      <if test="source != null">
+        source,
+      </if>
+      <if test="contributorId != null">
+        contributor_id,
+      </if>
+      <if test="contributeTime != null">
+        contribute_time,
+      </if>
+      <if test="checkStatus != null">
+        check_status,
+      </if>
+      <if test="reviewerId != null">
+        reviewer_id,
+      </if>
+      <if test="checkTime != null">
+        check_time,
+      </if>
+      <if test="checkDiscription != null">
+        check_discription,
+      </if>
+      <if test="cancelId != null">
+        cancel_id,
+      </if>
+      <if test="cancelTime != null">
+        cancel_time,
+      </if>
+      <if test="cancelDiscription != null">
+        cancel_discription,
+      </if>
+      <if test="praiseAmount != null">
+        praise_amount,
+      </if>
+      <if test="browsingAmount != null">
+        browsing_amount,
+      </if>
+      <if test="picUrl != null">
+        pic_url,
+      </if>
+      <if test="pluginUrl != null">
+        plugin_url,
+      </if>
+      <if test="content != null">
+        content,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="title != null">
+        #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="collegeId != null">
+        #{collegeId,jdbcType=VARCHAR},
+      </if>
+      <if test="source != null">
+        #{source,jdbcType=INTEGER},
+      </if>
+      <if test="contributorId != null">
+        #{contributorId,jdbcType=VARCHAR},
+      </if>
+      <if test="contributeTime != null">
+        #{contributeTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="checkStatus != null">
+        #{checkStatus,jdbcType=INTEGER},
+      </if>
+      <if test="reviewerId != null">
+        #{reviewerId,jdbcType=VARCHAR},
+      </if>
+      <if test="checkTime != null">
+        #{checkTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="checkDiscription != null">
+        #{checkDiscription,jdbcType=VARCHAR},
+      </if>
+      <if test="cancelId != null">
+        #{cancelId,jdbcType=VARCHAR},
+      </if>
+      <if test="cancelTime != null">
+        #{cancelTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="cancelDiscription != null">
+        #{cancelDiscription,jdbcType=VARCHAR},
+      </if>
+      <if test="praiseAmount != null">
+        #{praiseAmount,jdbcType=INTEGER},
+      </if>
+      <if test="browsingAmount != null">
+        #{browsingAmount,jdbcType=VARCHAR},
+      </if>
+      <if test="picUrl != null">
+        #{picUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="pluginUrl != null">
+        #{pluginUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="content != null">
+        #{content,jdbcType=LONGVARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.dynamic.DynamicArticleManagement">
+    update dynamic_article_management
+    <set>
+      <if test="title != null">
+        title = #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="collegeId != null">
+        college_id = #{collegeId,jdbcType=VARCHAR},
+      </if>
+      <if test="source != null">
+        source = #{source,jdbcType=INTEGER},
+      </if>
+      <if test="contributorId != null">
+        contributor_id = #{contributorId,jdbcType=VARCHAR},
+      </if>
+      <if test="contributeTime != null">
+        contribute_time = #{contributeTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="checkStatus != null">
+        check_status = #{checkStatus,jdbcType=INTEGER},
+      </if>
+      <if test="reviewerId != null">
+        reviewer_id = #{reviewerId,jdbcType=VARCHAR},
+      </if>
+      <if test="checkTime != null">
+        check_time = #{checkTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="checkDiscription != null">
+        check_discription = #{checkDiscription,jdbcType=VARCHAR},
+      </if>
+      <if test="cancelId != null">
+        cancel_id = #{cancelId,jdbcType=VARCHAR},
+      </if>
+      <if test="cancelTime != null">
+        cancel_time = #{cancelTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="cancelDiscription != null">
+        cancel_discription = #{cancelDiscription,jdbcType=VARCHAR},
+      </if>
+      <if test="praiseAmount != null">
+        praise_amount = #{praiseAmount,jdbcType=INTEGER},
+      </if>
+      <if test="browsingAmount != null">
+        browsing_amount = #{browsingAmount,jdbcType=VARCHAR},
+      </if>
+      <if test="picUrl != null">
+        pic_url = #{picUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="pluginUrl != null">
+        plugin_url = #{pluginUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="content != null">
+        content = #{content,jdbcType=LONGVARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKeyWithBLOBs" parameterType="com.partybuilding.webserver.entity.dynamic.DynamicArticleManagement">
+    update dynamic_article_management
+    set title = #{title,jdbcType=VARCHAR},
+      college_id = #{collegeId,jdbcType=VARCHAR},
+      source = #{source,jdbcType=INTEGER},
+      contributor_id = #{contributorId,jdbcType=VARCHAR},
+      contribute_time = #{contributeTime,jdbcType=TIMESTAMP},
+      check_status = #{checkStatus,jdbcType=INTEGER},
+      reviewer_id = #{reviewerId,jdbcType=VARCHAR},
+      check_time = #{checkTime,jdbcType=TIMESTAMP},
+      check_discription = #{checkDiscription,jdbcType=VARCHAR},
+      cancel_id = #{cancelId,jdbcType=VARCHAR},
+      cancel_time = #{cancelTime,jdbcType=TIMESTAMP},
+      cancel_discription = #{cancelDiscription,jdbcType=VARCHAR},
+      praise_amount = #{praiseAmount,jdbcType=INTEGER},
+      browsing_amount = #{browsingAmount,jdbcType=VARCHAR},
+      pic_url = #{picUrl,jdbcType=VARCHAR},
+      plugin_url = #{pluginUrl,jdbcType=VARCHAR},
+      content = #{content,jdbcType=LONGVARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.dynamic.DynamicArticleManagement">
+    update dynamic_article_management
+    set title = #{title,jdbcType=VARCHAR},
+      college_id = #{collegeId,jdbcType=VARCHAR},
+      source = #{source,jdbcType=INTEGER},
+      contributor_id = #{contributorId,jdbcType=VARCHAR},
+      contribute_time = #{contributeTime,jdbcType=TIMESTAMP},
+      check_status = #{checkStatus,jdbcType=INTEGER},
+      reviewer_id = #{reviewerId,jdbcType=VARCHAR},
+      check_time = #{checkTime,jdbcType=TIMESTAMP},
+      check_discription = #{checkDiscription,jdbcType=VARCHAR},
+      cancel_id = #{cancelId,jdbcType=VARCHAR},
+      cancel_time = #{cancelTime,jdbcType=TIMESTAMP},
+      cancel_discription = #{cancelDiscription,jdbcType=VARCHAR},
+      praise_amount = #{praiseAmount,jdbcType=INTEGER},
+      browsing_amount = #{browsingAmount,jdbcType=VARCHAR},
+      pic_url = #{picUrl,jdbcType=VARCHAR},
+      plugin_url = #{pluginUrl,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>

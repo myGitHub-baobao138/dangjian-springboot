@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceThreeSessionOneClassMapper">
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceThreeSessionOneClass">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="title" jdbcType="VARCHAR" property="title" />
+    <result column="created_user_id jdbcType=VARCHAR" property="createdUserId"/>
+    <result column="host_participate" jdbcType="VARCHAR" property="hostParticipate" />
+    <result column="meeting_form" jdbcType="VARCHAR" property="meetingForm" />
+    <result column="meeting_category" jdbcType="VARCHAR" property="meetingCategory" />
+    <result column="organization_id" jdbcType="VARCHAR" property="organizationId" />
+    <result column="meeting_time" jdbcType="TIMESTAMP" property="meetingTime" />
+    <result column="meeting_duration" jdbcType="VARCHAR" property="meetingDuration" />
+    <result column="meeting_status" jdbcType="VARCHAR" property="meetingStatus" />
+    <result column="meeting_level" jdbcType="VARCHAR" property="meetingLevel" />
+    <result column="release_time" jdbcType="TIMESTAMP" property="releaseTime" />
+    <result column="meeting_editor_id" jdbcType="VARCHAR" property="meetingEditorId" />
+    <result column="minutes_meeting_id" jdbcType="VARCHAR" property="minutesMeetingId" />
+    <result column="main_content" jdbcType="LONGVARCHAR" property="mainContent" />
+  </resultMap>
+
+    <resultMap id="threeSessionOneClass" type="com.partybuilding.webserver.dto.service.threeSessionOneClass.ThreeSessionOnClassDTO">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="title" jdbcType="VARCHAR" property="title"/>
+        <result column="meeting_category" jdbcType="VARCHAR" property="meetingCategory"/>
+        <result column="organization_id" jdbcType="VARCHAR" property="organizationId" />
+        <result column="organization_name" jdbcType="VARCHAR" property="organizationName" />
+        <result column="release_time" jdbcType="VARCHAR" property="releaseTime"/>
+        <result column="meeting_editor_id" jdbcType="VARCHAR" property="meetingEditorId"/>
+        <result column="meeting_editor_name" jdbcType="VARCHAR" property="meetingEditorName"/>
+        <result column="meeting_status" jdbcType="VARCHAR" property="meetingStatus"/>
+        <result column="meeting_time" jdbcType="VARCHAR" property="meetingTime"/>
+        <result column="minutes_meeting_id" jdbcType="VARCHAR" property="minutesMeetingId"/>
+        <result column="created_user_id" jdbcType="VARCHAR" property="createdUserId"/>
+        <result column="created_user_name" jdbcType="VARCHAR" property="createdUserName"/>
+        <result column="host_participate" jdbcType="VARCHAR" property="hostParticipate"/>
+        <result column="host_participate_name" jdbcType="VARCHAR" property="hostParticipateName"/>
+        <result column="meeting_form" jdbcType="VARCHAR" property="meetingForm"/>
+        <result column="meeting_duration" jdbcType="VARCHAR" property="meetingDuration"/>
+        <result column="meeting_level" jdbcType="VARCHAR" property="meetingLevel"/>
+        <result column="main_content" jdbcType="VARCHAR" property="mainContent"/>
+    </resultMap>
+
+    <resultMap id="participateList" type="com.partybuilding.webserver.dto.service.threeSessionOneClass.ParticipateReturnDTO">
+        <result column="id" jdbcType="VARCHAR" property="key"/>
+        <result column="name" jdbcType="VARCHAR" property="label"/>
+    </resultMap>
+
+  <sql id="Base_Column_List">
+    id, title, created_user_id,host_participate, meeting_form, meeting_category, organization_id, meeting_time,
+    meeting_duration, meeting_status, meeting_level, release_time, meeting_editor_id,
+    minutes_meeting_id,main_content
+  </sql>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from service_three_session_one_class
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+
+    <select id="getThreeSessionOneClassList" parameterType="com.partybuilding.webserver.dto.service.threeSessionOneClass.ThreeOneQueryDTO" resultMap="threeSessionOneClass">
+        select tsoc.id,title,meeting_category,os.organization_id,organization_name,release_time, meeting_editor_id ,
+               name as meeting_editor_name ,meeting_status,meeting_time,mm.id as minutes_meeting_id
+        from service_three_session_one_class as tsoc
+        left join sys_organizational_structure as os
+          on os.organization_id = tsoc.organization_id
+        left join sys_party_member_information as pmi
+          on pmi.id=tsoc.meeting_editor_id
+        left join service_minute_meeting as mm on mm.meeting_id = tsoc.id
+        where  tsoc.meeting_status != -1
+        <if test=" rank == 2 ">
+            and ( tsoc.organization_id = #{organizationId,jdbcType=VARCHAR}
+            or tsoc.organization_id in (select organization_id from sys_organizational_structure as os2 where
+            os2.higher_organization_id = #{organizationId,jdbcType=VARCHAR})
+            )
+        </if>
+         <if test="rank==3">
+             and tsoc.organization_id = #{organizationId,jdbcType=VARCHAR}
+         </if>
+        <if test="title != null and title != ''">
+            and title like CONCAT(CONCAT('%',#{title,jdbcType=VARCHAR},'%'))
+        </if>
+        <if test="releaseTime != null" >
+            and release_time like CONCAT(CONCAT('%',#{releaseTime,jdbcType=VARCHAR},'%'))
+        </if>
+        <if test="meetingCategory != null and meetingCategory != ''">
+            and meeting_category  =  #{meetingCategory,jdbcType=VARCHAR}
+        </if>
+        order by tsoc.meeting_status
+    </select>
+
+    <select id="getThreeOneDetail" parameterType="java.lang.String" resultMap="threeSessionOneClass">
+        select tsoc.id,title,meeting_category,organization_name,tsoc.organization_id,release_time,
+            meeting_status,meeting_time,host_participate,meeting_form,
+            meeting_duration,meeting_level,main_content,
+            group_concat(pmi.name order by pmi.id) as host_participate_name
+        from service_three_session_one_class as tsoc
+                 left join sys_organizational_structure as os on tsoc.organization_id = os.organization_id
+                 left join sys_party_member_information as pmi on find_in_set(pmi.id,tsoc.host_participate)
+        where tsoc.id = #{id,jdbcType=VARCHAR}
+        group by tsoc.id
+    </select>
+
+    <select id="getNotAttendIdList" parameterType="com.partybuilding.webserver.dto.service.threeSessionOneClass.ParticipateDTO" resultMap="participateList">
+       select pmi.id , pmi.name from sys_party_member_information as pmi
+      <if test="isSchool != true">
+          where pmi.organization_id = #{organizationId,jdbcType=VARCHAR}
+      </if>
+    </select>
+<!--得到参会人员id-->
+    <select id="getAttendIdList" parameterType="java.lang.String" resultType="java.lang.String">
+        select participate_id as id from service_participate_three_session_one_class
+         where three_session_one_class_id = #{id,jdbcType=VARCHAR}
+    </select>
+    <!--得到参会人员id和name-->
+    <select id="getParticipateList" parameterType="java.lang.String" resultMap="participateList">
+        select pmi.id , pmi.name  from sys_party_member_information as pmi where
+            pmi.id in(
+                select participate_id from service_participate_three_session_one_class as ptho
+                where ptho.three_session_one_class_id = #{id,jdbcType=VARCHAR})
+            or pmi.id = (select host_participate from service_three_session_one_class as tho where tho.id = #{id,jdbcType=VARCHAR})
+    </select>
+    <!--所有组织-->
+    <select id="getOrganizationList">
+
+    </select>
+    <!--组织下的人-->
+    <select id="getPartyMemberListByOrganizationId" parameterType="java.lang.String" resultMap="participateList">
+        select distinct  pmi.id  , pmi.name
+        from sys_party_member_information as pmi
+        left join sys_party_organization_post as pop on pmi.id=pop.party_id
+        where pop.organization_id = #{organizationId,jdbcType=VARCHAR}
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from service_three_session_one_class
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.partybuilding.webserver.entity.service.ServiceThreeSessionOneClass">
+    insert into service_three_session_one_class
+      (id, title,host_participate,
+      meeting_form, meeting_category, organization_id,
+      meeting_time, meeting_duration, meeting_status, 
+     release_time, meeting_editor_id,main_content)
+    values
+      (#{id,jdbcType=VARCHAR}, #{title,jdbcType=VARCHAR},#{hostParticipate,jdbcType=VARCHAR},
+      #{meetingForm,jdbcType=VARCHAR}, #{meetingCategory,jdbcType=VARCHAR}, #{organizationId,jdbcType=VARCHAR},
+      #{meetingTime,jdbcType=TIMESTAMP}, #{meetingDuration,jdbcType=VARCHAR}, #{meetingStatus,jdbcType=VARCHAR}, 
+      #{releaseTime,jdbcType=TIMESTAMP}, #{meetingEditorId,jdbcType=VARCHAR},
+      #{mainContent,jdbcType=LONGVARCHAR})
+  </insert>
+    <!--添加三会一课-->
+  <insert id="insertSelective" useGeneratedKeys="true" keyProperty="id"
+          parameterType="com.partybuilding.webserver.entity.service.ServiceThreeSessionOneClass">
+    insert into service_three_session_one_class
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="title != null">
+        title,
+      </if>
+      <if test="createdUserId != null">
+          created_user_id,
+      </if>
+      <if test="hostParticipate != null">
+        host_participate,
+      </if>
+      <if test="meetingForm != null">
+        meeting_form,
+      </if>
+      <if test="meetingCategory != null">
+        meeting_category,
+      </if>
+      <if test="organizationId != null">
+          organization_id,
+      </if>
+      <if test="meetingTime != null">
+        meeting_time,
+      </if>
+      <if test="meetingDuration != null">
+        meeting_duration,
+      </if>
+      <if test="meetingStatus != null">
+        meeting_status,
+      </if>
+      <if test="meetingLevel != null">
+        meeting_level,
+      </if>
+      <if test="releaseTime != null">
+        release_time,
+      </if>
+      <if test="meetingEditorId != null">
+        meeting_editor_id,
+      </if>
+      <if test="minutesMeetingId != null">
+        minutes_meeting_id,
+      </if>
+      <if test="mainContent != null">
+        main_content,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="title != null">
+        #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="createdUserId!=null">
+          #{createdUserId,jdbcType=VARCHAR},
+      </if>
+      <if test="hostParticipate != null">
+        #{hostParticipate,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingForm != null">
+        #{meetingForm,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingCategory != null">
+        #{meetingCategory,jdbcType=VARCHAR},
+      </if>
+      <if test="organizationId != null">
+        #{organizationId,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingTime != null">
+        #{meetingTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="meetingDuration != null">
+        #{meetingDuration,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingStatus != null">
+        #{meetingStatus,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingLevel != null">
+        #{meetingLevel,jdbcType=VARCHAR},
+      </if>
+      <if test="releaseTime != null">
+        #{releaseTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="meetingEditorId != null">
+        #{meetingEditorId,jdbcType=VARCHAR},
+      </if>
+      <if test="minutesMeetingId != null">
+        #{minutesMeetingId,jdbcType=VARCHAR},
+      </if>
+      <if test="mainContent != null">
+        #{mainContent,jdbcType=LONGVARCHAR},
+      </if>
+    </trim>
+      <!--<selectKey resultType="java.lang.String" keyProperty="id" >-->
+          <!--SELECT id AS ID-->
+      <!--</selectKey>-->
+  </insert>
+  <!--添加中间表数据 参会人员-->
+    <insert id="insertAttendThreeOne">
+        insert into service_participate_three_session_one_class(id,three_session_one_class_id,participate_id)
+        values
+        <foreach collection="record" item="param1" separator=",">
+            (
+            #{param1.id,jdbcType=VARCHAR},#{param1.threeSessionOneClassId,jdbcType=VARCHAR},#{param1.participateId,jdbcType=VARCHAR}
+            )
+        </foreach>
+    </insert>
+    <!--删除参会人员中间表-->
+    <delete id="deleteParticipatesThreeOne" parameterType="java.lang.String">
+        delete from service_participate_three_session_one_class where three_session_one_class_id = #{threeOneId,jdbcType=VARCHAR}
+    </delete>
+    <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.service.ServiceThreeSessionOneClass">
+    update service_three_session_one_class
+    <set>
+      <if test="title != null">
+        title = #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="createdUserId!=null">
+          created_user_id =#{createdUserId,jdbcType=VARCHAR},
+      </if>
+      <if test="hostParticipate != null">
+        host_participate = #{hostParticipate,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingForm != null">
+        meeting_form = #{meetingForm,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingCategory != null">
+        meeting_category = #{meetingCategory,jdbcType=VARCHAR},
+      </if>
+      <if test="organizationId != null">
+          organization_id = #{organizationId,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingTime != null">
+        meeting_time = #{meetingTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="meetingDuration != null">
+        meeting_duration = #{meetingDuration,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingStatus != null">
+        meeting_status = #{meetingStatus,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingLevel != null">
+        meeting_level = #{meetingLevel,jdbcType=VARCHAR},
+      </if>
+      <if test="releaseTime != null">
+        release_time = #{releaseTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="meetingEditorId != null">
+        meeting_editor_id = #{meetingEditorId,jdbcType=VARCHAR},
+      </if>
+      <if test="minutesMeetingId != null">
+        minutes_meeting_id = #{minutesMeetingId,jdbcType=VARCHAR},
+      </if>
+      <if test="mainContent != null">
+        main_content = #{mainContent,jdbcType=LONGVARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKeyWithBLOBs" parameterType="com.partybuilding.webserver.entity.service.ServiceThreeSessionOneClass">
+    update service_three_session_one_class
+    set title = #{title,jdbcType=VARCHAR},
+        created_user_id=#{createdUserId,jdbcType=VARCHAR},
+      host_participate = #{hostParticipate,jdbcType=VARCHAR},
+      meeting_form = #{meetingForm,jdbcType=VARCHAR},
+      meeting_category = #{meetingCategory,jdbcType=VARCHAR},
+        organization_id = #{organizationId,jdbcType=VARCHAR},
+      meeting_time = #{meetingTime,jdbcType=TIMESTAMP},
+      meeting_duration = #{meetingDuration,jdbcType=VARCHAR},
+      meeting_status = #{meetingStatus,jdbcType=VARCHAR},
+      meeting_level = #{meetingLevel,jdbcType=VARCHAR},
+      release_time = #{releaseTime,jdbcType=TIMESTAMP},
+      meeting_editor_id = #{meetingEditorId,jdbcType=VARCHAR},
+      minutes_meeting_id = #{minutesMeetingId,jdbcType=VARCHAR},
+      main_content = #{mainContent,jdbcType=LONGVARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.service.ServiceThreeSessionOneClass">
+    update service_three_session_one_class
+    set title = #{title,jdbcType=VARCHAR},
+      host_participate = #{hostParticipate,jdbcType=VARCHAR},
+        main_content = #{mainContent , jdbcType=VARCHAR},
+      meeting_form = #{meetingForm,jdbcType=VARCHAR},
+      meeting_category = #{meetingCategory,jdbcType=VARCHAR},
+      meeting_time = #{meetingTime,jdbcType=TIMESTAMP},
+      meeting_duration = #{meetingDuration,jdbcType=VARCHAR}
+    where id=#{id,jdbcType=VARCHAR}
+  </update>
+    <update id="deleteThreeOne" parameterType="java.lang.String">
+        update service_three_session_one_class set meeting_status=-1 where id=#{id,jdbcType=VARCHAR}
+    </update>
+    <update id="postThreeOne" parameterType="java.lang.String">
+        update  service_three_session_one_class  set meeting_status = 1 ,  release_time =now() where id in
+        <foreach collection="array" item="ids" open="(" separator="," close=")">
+            #{ids,jdbcType=VARCHAR}
+        </foreach>
+    </update>
+</mapper>

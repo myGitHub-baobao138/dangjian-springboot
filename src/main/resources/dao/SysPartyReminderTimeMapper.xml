@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.system.SysPartyReminderTimeMapper">
+
+    <insert id="insertList">
+        insert into sys_party_reminder_time(id,reminder_id,reminder_time,is_reminder)
+        values
+        <foreach collection="list" item="reminder" separator=",">
+            (#{reminder.reminderTimeId,jdbcType=VARCHAR},#{reminder.reminderId,jdbcType=VARCHAR},
+            #{reminder.time,jdbcType=VARCHAR},#{reminder.isReminder,jdbcType=BIT})
+        </foreach>
+    </insert>
+</mapper>

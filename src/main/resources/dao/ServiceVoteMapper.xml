@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceVoteMapper">
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceVote">
+        <id column="vote_id" jdbcType="VARCHAR" property="voteId"/>
+        <result column="vote_begin_time" jdbcType="VARCHAR" property="voteBeginTime"/>
+        <result column="vote_end_time" jdbcType="VARCHAR" property="voteEndTime"/>
+        <result column="sys_user_id" jdbcType="VARCHAR" property="sysUserPartyId"/>
+        <result column="vote_status" jdbcType="INTEGER" property="voteStatus"/>
+        <result column="vote_title" jdbcType="VARCHAR" property="voteTitle"/>
+        <result column="vote_content" jdbcType="LONGVARCHAR" property="voteContent"/>
+    </resultMap>
+    <resultMap id="BaseResultMap1" type="com.partybuilding.webserver.dto.service.voteDto.ServiceVoteDto">
+        <id column="vote_id" jdbcType="VARCHAR" property="voteId"/>
+        <result column="vote_begin_time" jdbcType="VARCHAR" property="voteBeginTime"/>
+        <result column="vote_end_time" jdbcType="VARCHAR" property="voteEndTime"/>
+        <result column="sys_user_id" jdbcType="VARCHAR" property="sysUserPartyId"/>
+        <result column="vote_status" jdbcType="INTEGER" property="voteStatus"/>
+        <result column="vote_title" jdbcType="VARCHAR" property="voteTitle"/>
+        <result column="vote_content" jdbcType="LONGVARCHAR" property="voteContent"/>
+    </resultMap>
+    <resultMap id="selectAll" type="com.partybuilding.webserver.dto.service.voteDto.GetVoteInfoListDto">
+        <id column="vote_id" jdbcType="VARCHAR" property="id"/>
+        <result column="vote_begin_time" jdbcType="VARCHAR" property="beginTime"/>
+        <result column="vote_end_time" jdbcType="VARCHAR" property="endTime"/>
+        <result column="partyName" jdbcType="VARCHAR" property="partyName"/>
+        <result column="vote_status" jdbcType="INTEGER" property="status"/>
+        <result column="vote_title" jdbcType="VARCHAR" property="title"/>
+        <result column="vote_content" jdbcType="LONGVARCHAR" property="content"/>
+        <result column="organization_name" jdbcType="VARCHAR" property="organizationName"></result>
+        <collection property="list" ofType="com.partybuilding.webserver.dto.service.voteDto.VoteOptionAndNumberDto"
+                    column="vote_id" select="selectOption">
+            <result column="id" jdbcType="VARCHAR" property="id"></result>
+            <result column="option" jdbcType="VARCHAR" property="option"></result>
+            <result column="voteContent" jdbcType="VARCHAR" property="optionContent"></result>
+            <result column="optionNumber" jdbcType="VARCHAR" property="optionNumber"></result>
+        </collection>
+    </resultMap>
+
+
+
+    <sql id="Base_Column_List">
+    vote_id, DATE_FORMAT(vote_begin_time,'%Y/%m/%d %H:%i:%s ') as vote_begin_time, DATE_FORMAT(vote_end_time,'%Y/%m/%d %H:%i:%s') as vote_end_time, sys_user_id,vote_status, vote_title, vote_content
+  </sql>
+    <sql id="selectAll">
+    service_vote.vote_id,  DATE_FORMAT(vote_begin_time,'%Y/%m/%d %H:%i:%s') as vote_begin_time, DATE_FORMAT(vote_end_time,'%Y/%m/%d %H:%i:%s') as vote_end_time, sys_party_member_information.name as partyName,
+    vote_status, vote_title,sys_organizational_structure.organization_name,vote_content,service_vote.organization_id
+  </sql>
+
+    <select id="selectOption" resultType="com.partybuilding.webserver.dto.service.voteDto.VoteOptionAndNumberDto">
+    select service_vote_option.id,`option`,service_vote_option.option_content as optionContent,count(option_id) as optionNumber from service_vote_option
+    left join service_vote_record record on record.option_id = service_vote_option.id where service_vote_option.vote_id = #{vote_id,jdbcType=VARCHAR}
+    GROUP BY service_vote_option.id order by `option`
+  </select>
+
+
+    <select id="selectByTitleOrTimeOrStatus" resultMap="selectAll"
+            parameterType="com.partybuilding.webserver.dto.service.voteDto.SelectByTitleOrTimeOrStatusDto">
+        select
+        <include refid="selectAll">
+        </include>
+        <if test="organizationRank==1">
+            from service_vote left join service_vote_option on service_vote.vote_id = service_vote_option.vote_id
+            LEFT JOIN service_vote_record on service_vote_record.option_id = service_vote_option.id
+            LEFT JOIN sys_party_member_information on sys_party_member_information.id = service_vote.sys_user_id
+            LEFT JOIN sys_organizational_structure on sys_organizational_structure.organization_id =
+            service_vote.organization_id
+            GROUP BY service_vote.vote_id having vote_title like concat('%',#{title},'%')
+            <if test="status!=null">
+                 and vote_status = #{status}
+            </if>
+            <if test="time!=null and time!=''">
+                and vote_begin_time like concat('%',#{time},'%')
+            </if>
+            <!--<if test="title!=null and title!= '' ">-->
+                <!--and -->
+            <!--</if>-->
+
+        </if>
+        <if test="organizationRank>1">
+            from service_vote left join service_vote_option on service_vote.vote_id = service_vote_option.vote_id
+            LEFT JOIN service_vote_record on service_vote_record.option_id = service_vote_option.id
+            LEFT JOIN sys_party_member_information on sys_party_member_information.id = service_vote.sys_user_id
+            LEFT JOIN sys_organizational_structure on sys_organizational_structure.organization_id =
+            service_vote.organization_id
+            GROUP BY service_vote.vote_id having
+            (service_vote.organization_id = #{organizationId,jdbcType=VARCHAR}
+            or service_vote.organization_id in (select sys_organizational_structure.organization_id from
+            sys_organizational_structure
+            where sys_organizational_structure.higher_organization_id=#{organizationId,jdbcType=VARCHAR} ))
+            <if test="status!=null">
+                and vote_status = #{status}
+            </if>
+            <if test="time!=null and time!=''">
+                and vote_begin_time like concat('%',#{time},'%')
+            </if>
+            <if test="title!=null and title!= '' ">
+                and vote_title like concat('%',#{title},'%')
+            </if>
+        </if>
+    </select>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from service_vote
+        where vote_id = #{voteId,jdbcType=VARCHAR}
+    </select>
+
+    <select id="selectVoteByTitleAndAcademy" parameterType="java.lang.String" resultMap="BaseResultMap1">
+        select
+        <include refid="Base_Column_List"/>
+        from service_vote
+        where vote_title like CONCAT('%',#{title},'%') and sys_user_department = #{academy} order by vote_begin_time
+    </select>
+
+    <select id="selectVoteByStatus" parameterType="java.lang.Integer" resultMap="BaseResultMap1">
+        select
+        <include refid="Base_Column_List"/>
+        from service_vote
+        where vote_status = ${status}
+    </select>
+    <select id="selectVoteByStatusAndAcademy" resultMap="BaseResultMap1"
+            parameterType="com.partybuilding.webserver.dto.service.voteDto.StatusAndAcademy">
+        select
+        <include refid="Base_Column_List"/>
+        from service_vote
+        where vote_status=${status} and sys_user_department = #{academy} order by vote_begin_time
+    </select>
+    <select id="selectVoteByBeginTime" resultMap="BaseResultMap1">
+        select
+        <include refid="Base_Column_List"/>
+        from service_vote
+        where vote_begin_time like CONCAT('%',#{beginTime},'%')
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from service_vote
+    where vote_id = #{voteId,jdbcType=VARCHAR}
+  </delete>
+    <insert id="insert" parameterType="com.partybuilding.webserver.entity.service.ServiceVote">
+    insert into service_vote (vote_id, vote_begin_time, vote_end_time,
+      sys_user_id,  vote_status,
+      vote_content,vote_title, organization_id)
+    values (#{voteId,jdbcType=VARCHAR}, #{voteBeginTime,jdbcType=VARCHAR}, #{voteEndTime,jdbcType=VARCHAR},
+      #{sysUserPartyId,jdbcType=VARCHAR}, #{voteStatus,jdbcType=INTEGER},
+      #{voteContent,jdbcType=LONGVARCHAR},#{voteTitle,jdbcType=VARCHAR},#{organizationId,jdbcType=VARCHAR})
+  </insert>
+    <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.service.ServiceVote">
+        insert into service_vote
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="voteId != null">
+                vote_id,
+            </if>
+            <if test="voteBeginTime != null">
+                vote_begin_time,
+            </if>
+            <if test="voteEndTime != null">
+                vote_end_time,
+            </if>
+            <if test="sysUserPartyId != null">
+                sys_user_id,
+            </if>
+            <if test="voteStatus != null">
+                vote_status,
+            </if>
+            <if test="voteContent != null">
+                vote_content,
+            </if>
+            <if test="voteTitle != null">
+                vote_title,
+            </if>
+            <if test="organizationId !=null">
+                organization_id
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="voteId != null">
+                #{voteId,jdbcType=VARCHAR},
+            </if>
+            <if test="voteBeginTime != null">
+                #{voteBeginTime,jdbcType=VARCHAR},
+            </if>
+            <if test="voteEndTime != null">
+                #{voteEndTime,jdbcType=VARCHAR},
+            </if>
+            <if test="sysUserId != null">
+                #{sysUserId,jdbcType=VARCHAR},
+            </if>
+            <if test="voteStatus != null">
+                #{voteStatus,jdbcType=INTEGER},
+            </if>
+            <if test="voteContent != null">
+                #{voteContent,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="voteTitle != null">
+                #{voteTitle,jdbcType=VARCHAR},
+            </if>
+            <if test="sysUserDepartment !=null">
+                #{sysUserDepartment,jdbcType=VARCHAR}
+            </if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.service.ServiceVote">
+    update service_vote
+    set vote_begin_time = #{voteBeginTime,jdbcType=VARCHAR},
+      vote_end_time = #{voteEndTime,jdbcType=VARCHAR},
+      sys_user_id = #{sysUserPartyId,jdbcType=VARCHAR},
+      vote_status = #{voteStatus,jdbcType=INTEGER},
+      vote_title = #{voteTitle,jdbcType=VARCHAR},
+      vote_content = #{voteContent,jdbcType=VARCHAR},
+      organization_id = #{organizationId,jdbcType=VARCHAR}
+    where vote_id = #{voteId,jdbcType=VARCHAR}
+  </update>
+    <update id="updateList" parameterType="java.util.List">
+        <foreach collection="list" item="vote" separator=",">
+            update service_vote
+            set vote_begin_time = #{vote.voteBeginTime,jdbcType=VARCHAR},
+            vote_end_time = #{vote.voteEndTime,jdbcType=VARCHAR},
+            sys_user_id = #{vote.sysUserPartyId,jdbcType=VARCHAR},
+            vote_status = #{vote.voteStatus,jdbcType=INTEGER}
+            vote_title = #{vote.voteTitle,jdbcType=VARCHAR},
+            vote_content = #{vote.voteContent,jdbcType=VARCHAR},
+            organization_id=#{vote.organizationId,jdbcType=VARCHAR}
+            where vote_id = #{vote.voteId,jdbcType=VARCHAR}
+        </foreach>
+    </update>
+<!--修改状态-->
+    <update id="updateStatus">
+        update service_vote
+        set vote_status = ${status}
+        where vote_id = #{id,jdbcType=VARCHAR}
+    </update>
+
+    <select id="getStatusAndTime" resultType="com.partybuilding.webserver.dto.service.voteDto.EndTimeAndId">
+      select vote_id as id,vote_status as status,DATE_FORMAT(vote_end_time,'%Y-%m-%d %H:%i:%s') as time from service_vote where vote_status = 1
+    </select>
+
+    <select id="getBeginTime" resultType="com.partybuilding.webserver.dto.service.voteDto.EndTimeAndId">
+      select vote_id as id,vote_status as status,
+      DATE_FORMAT(vote_begin_time,'%Y-%m-%d %H:%i:%s') as time,
+      organization_id as organizationId,
+      DATE_FORMAT(vote_end_time,'%Y-%m-%d %H:%i:%s') as endTime,
+      sys_user_id as partyId
+       from service_vote where vote_status = 0
+    </select>
+</mapper>

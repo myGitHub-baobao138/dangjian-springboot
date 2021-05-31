@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.system.SysWxUserMapper">
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.system.SysWxUser">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="nickname" jdbcType="VARCHAR" property="nickname"/>
+        <result column="sex" jdbcType="INTEGER" property="sex"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="student_job_number" jdbcType="VARCHAR" property="studentJobNumber"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="avatarurl" jdbcType="VARCHAR" property="avatarurl"/>
+        <result column="is_audited" jdbcType="INTEGER" property="isAudited"/>
+        <result column="verify_time" jdbcType="TIMESTAMP" property="verifyTime"/>
+        <result column="tel_number" jdbcType="VARCHAR" property="telNumber"/>
+        <result column="type" jdbcType="INTEGER" property="type"/>
+        <result column="is_secretary" jdbcType="INTEGER" property="isSecretary"/>
+        <result column="party_id" jdbcType="VARCHAR" property="partyId"/>
+    </resultMap>
+
+
+    <sql id="Base_Column_List">
+    id, nickname, sex, name, student_job_number, create_time, avatarurl, is_audited,
+    verify_time,  tel_number, type, is_secretary,party_id
+  </sql>
+
+    <!--  其他需要的接口，通过id找名字-->
+    <select id="selectNameById" parameterType="java.lang.String" resultType="java.lang.String">
+    select name
+    from sys_wx_user
+    where id = #{id, jdbcType=VARCHAR}
+  </select>
+
+    <!--  其他需要的接口，通过id找职务id-->
+    <select id="selectPositionIdById" parameterType="java.lang.String" resultType="java.lang.String">
+    select position_id
+    from sys_wx_user
+    where id = #{id, jdbcType=VARCHAR}
+  </select>
+
+
+    <!-- 查询微信用户列表 -->
+    <select id="selectWxUserAllQueryList"
+            parameterType="com.partybuilding.webserver.dto.system.wxuser.GetWxUserListInputDTO"
+            resultType="com.partybuilding.webserver.dto.system.wxuser.GetWxUserListDTO">
+        select id,nickname,sex,
+        date_format(create_time,'%Y/%m/%d') as createTime,
+        is_audited as isAudited,
+        date_format(verify_time,'%Y/%m/%d') as verifyTime
+        from sys_wx_user
+        <where>
+            <if test="nickname != null">
+                and nickname like concat(concat('%',#{nickname}),'%')
+            </if>
+
+            <if test="isAudited == 1">
+                and is_audited = 1
+            </if>
+            <if test="isAudited != 1 and isAudited != null">
+                and is_audited != 1
+            </if>
+
+        </where>
+    </select>
+
+
+    <!-- 认证管理模块 -->
+
+    <!-- 获取认证信息列表 (学院级用户) -->
+    <select id="selectVerificationInfoListByAcademy" parameterType="java.lang.String"
+            resultType="com.partybuilding.webserver.dto.system.auditRecord.GetVerificationInfoListDTO">
+    select wx.id as id, nickname, wx.name as name, student_job_number as studentJobNumber, academy_name as academyName,
+    tel_number as telNumber,type,is_secretary as isSecretary, is_audited as isAudited
+    from (sys_wx_user wx left outer join sys_user user on user.academy_id = wx.academy_id ) left outer join sys_academy ac on ac.id = wx.academy_id
+    where sys_party_member_information_id = #{partyId}
+  </select>
+
+    <select id="selectAllVerificationInfoList" parameterType="java.lang.String"
+            resultType="com.partybuilding.webserver.dto.system.auditRecord.GetVerificationInfoListDTO">
+	 select wx.id as id, nickname,  name, student_job_number as studentJobNumber, academy_name as academyName,
+    tel_number as telNumber,type,is_secretary as isSecretary, is_audited as isAudited
+    from sys_wx_user wx  left outer join sys_academy ac on ac.id = wx.academy_id
+
+    </select>
+
+
+    <resultMap id="verificationInfoMap"
+               type="com.partybuilding.webserver.dto.system.auditRecord.GetVerificationInfoDTO">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="nickname" jdbcType="VARCHAR" property="nickname"/>
+        <result column="sex" jdbcType="INTEGER" property="sex"/>
+        <result column="wxname" jdbcType="VARCHAR" property="name"/>
+        <result column="student_job_number" jdbcType="VARCHAR" property="studentJobNumber"/>
+        <result column="type" jdbcType="INTEGER" property="type"/>
+        <result column="tel_number" jdbcType="VARCHAR" property="telNumber"/>
+        <collection property="organizationName" javaType="List" column="ogId" select="getOrganizationNameList"/>
+        <collection property="position" column="pId" select="getPostNameList"/>
+
+
+        <collection property="auditRecords" javaType="List" column="wxId"
+                    select="getAuditRecords">
+            <id column="auditId" jdbcType="VARCHAR" property="id"/>
+            <result column="audit_result" jdbcType="INTEGER" property="auditResult"/>
+            <result column="auditTime" jdbcType="TIMESTAMP" property="auditTime"/>
+            <result column="remarks" jdbcType="VARCHAR" property="remarks"/>
+            <result column="auditUser" jdbcType="VARCHAR" property="auditUser"/>
+        </collection>
+
+    </resultMap>
+
+
+    <select id="getPostNameList" parameterType="java.lang.String" resultType="java.lang.String">
+        select name from sys_post where sys_post.id = #{pId,jdbcType=VARCHAR}
+    </select>
+    <select id="getOrganizationNameList" parameterType="java.lang.String" resultType="java.lang.String">
+				select organization_name  from sys_organizational_structure  org where org.organization_id = #{ogId,jdbcType=VARCHAR}
+    </select>
+    <select id="getAuditRecords" parameterType="java.lang.String"
+            resultType="com.partybuilding.webserver.dto.system.auditRecord.VerificationRecordDTO">
+				select s.id as id,remarks,pt.name as  auditUser,audit_result as auditResult,DATE_FORMAT(audit_time,'%Y/%m/%d') as auditTime from sys_certification_audit_record  s
+				left join sys_party_member_information pt on pt.id = s.user_id
+				where s.wx_user_id = #{wxId,jdbcType=VARCHAR}
+     </select>
+
+    <!--获取认证的详细信息 -->
+    <select id="selectVerificationInfo" parameterType="java.lang.String"
+            resultType="com.partybuilding.webserver.dto.system.auditRecord.GetVerificationInfoDTO">
+  select wx.id as id, nickname, wx.name as name, wx.sex as sex,student_job_number as studentJobNumber,
+        og.organization_id as ogId,post.id as pId,og.organization_id as ogId,
+        tel_number as telNumber,type
+        from sys_wx_user wx left join sys_wx_user_org_post wxorg on wxorg.wx_user_id = wx.id
+        left join sys_organizational_structure og on og.organization_id = wxorg.organization_id
+        left join sys_post post on post.id = wxorg.post_id
+    where wx.id = #{id}
+  </select>
+
+
+    <!-- 获取认证的党员信息通过学号 -->
+    <select id="getPartyInfoByStudentJobNumber" parameterType="java.lang.String"
+            resultType="com.partybuilding.webserver.dto.system.auditRecord.PartyAuditInfo">
+        select  id,sno_or_job_number as studentJobNumber,name,sex,contact as telNumber,classification as type
+        from sys_party_member_information
+        where sno_or_job_number = #{studentJobNumber,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 通过职务id查询职务名称 -->
+    <select id="selectPostNameById" parameterType="java.lang.String" resultType="java.lang.String">
+        select name
+        from sys_post
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <update id="insertPartyId" parameterType="java.lang.String">
+        update sys_wx_user
+        <set>
+            <if test="partyId != null and partyId != ''">
+                party_id = #{partyId,jdbcType=VARCHAR},
+            </if>
+
+        </set>
+        where id = #{wxUserId,jdbcType=VARCHAR}
+
+    </update>
+    <!--  用户认证成功 -->
+    <update id="verifyWxUser" parameterType="com.partybuilding.webserver.dto.system.auditRecord.VerifyWxUserInputDTO">
+        update sys_wx_user
+        <set>
+            <if test="auditResult != null">
+                is_audited = #{auditResult,jdbcType=INTEGER},
+            </if>
+            <if test="verifyTime != null and auditResult == 1">
+                verify_time = #{verifyTime,jdbcType=TIMESTAMP},
+            </if>
+        </set>
+        where id = #{wxUserId,jdbcType=VARCHAR}
+    </update>
+
+    <!-- 根据学工号获取党员id -->
+    <select id="getPartyIdByStuJobNumber" parameterType="java.lang.String" resultType="java.lang.String">
+        select id
+        from sys_party_member_information
+        where sno_or_job_number = #{stuJobNumber,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 认证成功，更新数据 -->
+    <update id="updateWxUserStateTimeSuccess" parameterType="java.lang.String">
+        update sys_wx_user
+        <set>
+            <if test="auditResult != null and auditResult != ''">
+                is_audited = #{auditResult,jdbcType=INTEGER},
+            </if>
+            <if test="verifyTime != null and verifyTime != ''">
+                verify_time = #{verifyTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="partyId != null and partyId != ''">
+                party_id = #{partyId,jdbcType=TIMESTAMP},
+            </if>
+        </set>
+        where id = #{wxId,jdbcType=VARCHAR} and party_id is null
+    </update>
+
+    <!-- 认证失败，更新数据 -->
+    <update id="updateWxUserStateTimeFail" parameterType="java.lang.String">
+        update sys_wx_user
+        <set>
+            <if test="auditResult != null and auditResult != ''">
+                is_audited = #{auditResult,jdbcType=INTEGER},
+            </if>
+        </set>
+        where id = #{wxId,jdbcType=VARCHAR} and party_id is null
+    </update>
+
+    <!-- 更新数据 -->
+    <update id="updateOrgPostIsAudited" parameterType="java.lang.String">
+        update sys_wx_user_org_post
+        <set>
+            <if test="auditResult != null and auditResult != ''">
+                is_audited = #{auditResult,jdbcType=INTEGER},
+            </if>
+        </set>
+        where id = #{orgPostId,jdbcType=VARCHAR}
+    </update>
+
+
+    <!-- 获取认证信息查询列表  -->
+    <select id="getAllVerificationInfoQueryList"
+            parameterType="com.partybuilding.webserver.dto.system.auditRecord.GetVerificationInfoQueryListInputDTO"
+            resultType="com.partybuilding.webserver.dto.system.auditRecord.GetVerificationInfoListDTO">
+        select * from (select wx.id as id, nickname, wx.name as name, student_job_number as studentJobNumber,wxorg.id as
+        organPostId,
+        og.organization_name as organizationName,post.name as postName,og.organization_id as ogId,
+        tel_number as telNumber,type,is_secretary as isSecretary, wxorg.is_audited as isAudited
+        from sys_wx_user wx left join sys_wx_user_org_post wxorg on wxorg.wx_user_id = wx.id
+        left join sys_organizational_structure og on og.organization_id = wxorg.organization_id
+        left join sys_post post on post.id = wxorg.post_id
+        where wxorg.organization_id in
+        (SELECT
+        organization_id
+        FROM
+        sys_organizational_structure
+        WHERE
+        FIND_IN_SET(
+        organization_id,
+        getChildrenOrg (#{adminOrganizationId,jdbcType=VARCHAR})
+        )))a
+
+        <where>
+            <if test="wxOrganizationId !=null and wxOrganizationId != ''">
+                and a.ogId in
+                (SELECT
+                organization_id
+                FROM
+                sys_organizational_structure
+                WHERE
+                FIND_IN_SET(
+                organization_id,
+                getChildrenOrg (#{wxOrganizationId,jdbcType=VARCHAR})
+                ))
+            </if>
+            <if test="type != null ">
+                and a.type = #{type}
+            </if>
+            <if test="isSecretary != null ">
+                and a.isSecretary = #{isSecretary}
+            </if>
+            <if test="isAudited != null">
+                and a.isAudited = #{isAudited}
+            </if>
+            <if test="name!= null">
+                and a.name like concat(concat('%',#{name}),'%')
+            </if>
+
+
+        </where>
+
+
+    </select>
+
+
+    <!-- 通过id找小程序用户-->
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from sys_wx_user
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 获取所有下级组织 -->
+    <select id="getOrganizationDownById" parameterType="java.lang.String"
+            resultType="com.partybuilding.webserver.dto.Organization">
+        SELECT
+            organization_id as organizationId,
+            organization_name as organizationName
+        FROM
+            sys_organizational_structure
+        WHERE
+            FIND_IN_SET(
+                organization_id,
+                getChildrenOrg (#{id})
+            )
+    </select>
+
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from sys_wx_user
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+    <insert id="insert" parameterType="com.partybuilding.webserver.entity.system.SysWxUser">
+    insert into sys_wx_user (id, nickname, sex, 
+      name, student_job_number, create_time, 
+      avatarurl, is_audited, verify_time, 
+       tel_number, type,
+      is_secretary
+      )
+    values (#{id,jdbcType=VARCHAR}, #{nickname,jdbcType=VARCHAR}, #{sex,jdbcType=INTEGER}, 
+      #{name,jdbcType=VARCHAR}, #{studentJobNumber,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, 
+      #{avatarurl,jdbcType=VARCHAR}, #{isAudited,jdbcType=INTEGER}, #{verifyTime,jdbcType=TIMESTAMP}, 
+       #{telNumber,jdbcType=VARCHAR}, #{type,jdbcType=INTEGER},
+      #{isSecretary,jdbcType=INTEGER}
+      )
+  </insert>
+    <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.system.SysWxUser">
+        insert into sys_wx_user
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="nickname != null">
+                nickname,
+            </if>
+            <if test="sex != null">
+                sex,
+            </if>
+            <if test="name != null">
+                name,
+            </if>
+            <if test="studentJobNumber != null">
+                student_job_number,
+            </if>
+            <if test="createTime != null">
+                create_time,
+            </if>
+            <if test="avatarurl != null">
+                avatarurl,
+            </if>
+            <if test="isAudited != null">
+                is_audited,
+            </if>
+            <if test="verifyTime != null">
+                verify_time,
+            </if>
+
+            <if test="telNumber != null">
+                tel_number,
+            </if>
+            <if test="type != null">
+                type,
+            </if>
+            <if test="isSecretary != null">
+                is_secretary,
+            </if>
+
+
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="nickname != null">
+                #{nickname,jdbcType=VARCHAR},
+            </if>
+            <if test="sex != null">
+                #{sex,jdbcType=INTEGER},
+            </if>
+            <if test="name != null">
+                #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="studentJobNumber != null">
+                #{studentJobNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="createTime != null">
+                #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="avatarurl != null">
+                #{avatarurl,jdbcType=VARCHAR},
+            </if>
+            <if test="isAudited != null">
+                #{isAudited,jdbcType=INTEGER},
+            </if>
+            <if test="verifyTime != null">
+                #{verifyTime,jdbcType=TIMESTAMP},
+            </if>
+
+            <if test="telNumber != null">
+                #{telNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="type != null">
+                #{type,jdbcType=INTEGER},
+            </if>
+            <if test="isSecretary != null">
+                #{isSecretary,jdbcType=INTEGER},
+            </if>
+
+
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.system.SysWxUser">
+        update sys_wx_user
+        <set>
+            <if test="nickname != null">
+                nickname = #{nickname,jdbcType=VARCHAR},
+            </if>
+            <if test="sex != null">
+                sex = #{sex,jdbcType=INTEGER},
+            </if>
+            <if test="name != null">
+                name = #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="studentJobNumber != null">
+                student_job_number = #{studentJobNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="avatarurl != null">
+                avatarurl = #{avatarurl,jdbcType=VARCHAR},
+            </if>
+            <if test="isAudited != null">
+                is_audited = #{isAudited,jdbcType=INTEGER},
+            </if>
+            <if test="verifyTime != null">
+                verify_time = #{verifyTime,jdbcType=TIMESTAMP},
+            </if>
+
+            <if test="telNumber != null">
+                tel_number = #{telNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="type != null">
+                type = #{type,jdbcType=INTEGER},
+            </if>
+            <if test="isSecretary != null">
+                is_secretary = #{isSecretary,jdbcType=INTEGER},
+            </if>
+
+
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.system.SysWxUser">
+    update sys_wx_user
+    set nickname = #{nickname,jdbcType=VARCHAR},
+      sex = #{sex,jdbcType=INTEGER},
+      name = #{name,jdbcType=VARCHAR},
+      student_job_number = #{studentJobNumber,jdbcType=VARCHAR},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      avatarurl = #{avatarurl,jdbcType=VARCHAR},
+      is_audited = #{isAudited,jdbcType=INTEGER},
+      verify_time = #{verifyTime,jdbcType=TIMESTAMP},
+
+      tel_number = #{telNumber,jdbcType=VARCHAR},
+      type = #{type,jdbcType=INTEGER},
+      is_secretary = #{isSecretary,jdbcType=INTEGER}
+
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>

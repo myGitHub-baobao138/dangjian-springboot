@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceLeaveWordsMapper">
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceLeaveWords">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="leave_words_time" jdbcType="TIMESTAMP" property="leaveWordsTime"/>
+        <result column="wx_user_id" jdbcType="VARCHAR" property="wxUserId"/>
+        <result column="user_id" jdbcType="VARCHAR" property="userId"/>
+        <result column="reply_time" jdbcType="TIMESTAMP" property="replyTime"/>
+        <result column="leave_words_content" jdbcType="LONGVARCHAR" property="leaveWordsContent"/>
+        <result column="reply_content" jdbcType="LONGVARCHAR" property="replyContent"/>
+        <result column="leave_organization_id" jdbcType="VARCHAR" property="leaveOrganizationId"/>
+        <result column="leave_post_id" jdbcType="VARCHAR" property="leavePostId"/>
+        <result column="reply_organization_id" jdbcType="VARCHAR" property="replyOrganizationId"/>
+        <result column="reply_post_id" jdbcType="VARCHAR" property="replyPostId"/>
+    </resultMap>
+
+
+    <sql id="Base_Column_List">
+    id, leave_words_time, wx_user_id, user_id, reply_time,leave_words_content,reply_content,leave_organization_id,leave_post_id,reply_organization_id,
+  </sql>
+
+
+    <!-- 获取留言查询列表 -->
+    <select id="getLeaveWordsQueryList"
+            parameterType="com.partybuilding.webserver.dto.service.leavewords.GetLeaveWordsQueryListInputDTO"
+            resultType="com.partybuilding.webserver.dto.service.leavewords.LeaveWordsListDTO">
+        select * from(select
+        lw.id as id,
+        leave_words_content as leaveWordsContent,
+        DATE_FORMAT(reply_time,'%Y/%m/%d %H:%i:%s') as replyTime,
+        DATE_FORMAT(leave_words_time,'%Y/%m/%d %H:%i:%s') as leaveWordsTime,
+        pt1.name as leaveWordsName,
+        pt.name as replyName,
+        post.name as leaveWordsPosition,
+        post1.name as replyPosition,
+        org1.organization_name as leaveOrganizationName,
+        org2.organization_name as replyOrganizationName,
+        org1.organization_id as ogId,
+        reply_content as replyContent
+        from service_leave_words as lw
+        left join sys_party_member_information as pt1 on lw.wx_user_id = pt1.id
+        left join sys_party_member_information pt on pt.id = lw.user_id
+        left join sys_post post on post.id = lw.leave_post_id
+        left join sys_post post1 on post1.id = lw.reply_post_id
+        left join sys_organizational_structure org1 on org1.organization_id = lw.leave_organization_id
+        left join sys_organizational_structure org2 on org2.organization_id = lw.reply_organization_id
+        where org1.organization_id in
+        (SELECT
+        organization_id
+        FROM
+        sys_organizational_structure
+        WHERE
+        FIND_IN_SET(
+        organization_id,
+        getChildrenOrg (#{adminOrganizationId,jdbcType=VARCHAR})
+        )))a
+        <where>
+            <if test="leaveWordsContent != null and leaveWordsContent != ''">
+                and leaveWordsContent like concat(concat('%', #{leaveWordsContent}),'%')
+            </if>
+            <if test="leaveWordsTime != null and leaveWordsTime != ''">
+                and date_format(leaveWordsTime, '%Y-%m-%d') = #{leaveWordsTime}
+            </if>
+            <if test="selectOrganizationId !=null and selectOrganizationId != ''">
+                and a.ogId in
+                (SELECT
+                organization_id
+                FROM
+                sys_organizational_structure
+                WHERE
+                FIND_IN_SET(
+                organization_id,
+                getChildrenOrg (#{selectOrganizationId,jdbcType=VARCHAR})
+                ))
+            </if>
+        </where>
+
+    </select>
+
+
+    <!-- 查看留言信息 -->
+    <select id="getLeaveWordInfo"
+            parameterType="com.partybuilding.webserver.dto.service.leavewords.GetLeaveWordsInfoInputDTO"
+            resultType="com.partybuilding.webserver.dto.service.leavewords.LeaveWordsListDTO">
+        select
+        lw.id as id,
+        leave_words_content as leaveWordsContent,
+        DATE_FORMAT(reply_time,'%Y/%m/%d %H:%i:%s') as replyTime,
+        DATE_FORMAT(leave_words_time,'%Y/%m/%d %H:%i:%s') as leaveWordsTime,
+        pt1.name as leaveWordsName,
+        pt.name as replyName,
+        post.name as leaveWordsPosition,
+        post1.name as replyPosition,
+        org1.organization_name as leaveOrganizationName,
+        org2.organization_name as replyOrganizationName,
+        reply_content as replyContent
+        from service_leave_words as lw
+        left join sys_party_member_information as pt1 on lw.wx_user_id = pt1.id
+        left join sys_party_member_information pt on pt.id = lw.user_id
+        left join sys_post post on post.id = lw.leave_post_id
+        left join sys_post post1 on post1.id = lw.reply_post_id
+        left join sys_organizational_structure org1 on org1.organization_id = lw.leave_organization_id
+        left join sys_organizational_structure org2 on org2.organization_id = lw.reply_organization_id
+        where lw.id = #{leaveWordsId,jdbcType=VARCHAR}
+  </select>
+
+    <!-- -回复留言 -->
+    <update id="replyLeaveWords"
+            parameterType="com.partybuilding.webserver.dto.service.leavewords.ReplyLeaveWordsInputDTO">
+        update service_leave_words
+        <set>
+            <if test="replyTime != null and replyTime != ''">
+                reply_time = #{replyTime},
+            </if>
+            <if test="replyContent != null and replyContent != ''">
+                reply_content = #{replyContent},
+            </if>
+            <if test="replyPartyId != null and replyPartyId != ''">
+                user_id = #{replyPartyId},
+            </if>
+            <if test="replyOrganizationId != null and replyOrganizationId != ''">
+                reply_organization_id = #{replyOrganizationId},
+            </if>
+            <if test="replyPostId != null and replyPostId != ''">
+                reply_post_id = #{replyPostId},
+            </if>
+        </set>
+
+        where id = #{leaveWordsId}
+    </update>
+
+    <!-- 获取所有下级组织 -->
+    <select id="getOrganizationDownById" parameterType="java.lang.String"
+            resultType="com.partybuilding.webserver.dto.Organization">
+        SELECT
+            organization_id as organizationId,
+            organization_name as organizationName
+        FROM
+            sys_organizational_structure
+        WHERE
+            FIND_IN_SET(
+                organization_id,
+                getChildrenOrg (#{id})
+            )
+    </select>
+
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from service_leave_words
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from service_leave_words
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+
+
+    <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.service.ServiceLeaveWords">
+    update service_leave_words
+    set leave_words_time = #{leaveWordsTime,jdbcType=TIMESTAMP},
+      wx_user_id = #{wxUserId,jdbcType=VARCHAR},
+      user_id = #{userId,jdbcType=VARCHAR},
+      reply_time = #{replyTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>

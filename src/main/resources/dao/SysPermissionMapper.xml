@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.system.SysPermissionMapper">
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.system.SysPermission">
+        <id column="permission_id" jdbcType="VARCHAR" property="permissionId"/>
+        <result column="permission_name" jdbcType="VARCHAR" property="permissionName"/>
+        <result column="permission_up_id" jdbcType="VARCHAR" property="permissionUpId"/>
+        <result column="permission_level" jdbcType="INTEGER" property="permissionLevel"/>
+        <result column="permission_path" jdbcType="VARCHAR" property="permissionPath"/>
+        <result column="is_delete" jdbcType="TINYINT" property="isDelete"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="order" jdbcType="INTEGER" property="order"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="PermissionListMap" type="com.partybuilding.webserver.dto.PermissionListDTO">
+        <id column="permissionId" jdbcType="VARCHAR" property="permissionId"/>
+        <result column="permissionName" jdbcType="VARCHAR" property="permissionName"/>
+        <result column="permissionUpId" jdbcType="VARCHAR" property="permissionUpId"/>
+        <result column="permissionLevel" jdbcType="INTEGER" property="permissionLevel"/>
+        <result column="permissionPath" jdbcType="VARCHAR" property="permissionPath"/>
+        <result column="order1" jdbcType="INTEGER" property="order"/>
+        <collection property="children" javaType="List"
+                    ofType="com.partybuilding.webserver.dto.PermissionListDTO"
+                    autoMapping="true">
+            <id column="permissionId1" jdbcType="VARCHAR" property="permissionId"/>
+            <result column="permissionName1" jdbcType="VARCHAR" property="permissionName"/>
+            <result column="permissionUpId1" jdbcType="VARCHAR" property="permissionUpId"/>
+            <result column="permissionLevel1" jdbcType="INTEGER" property="permissionLevel"/>
+            <result column="permissionPath1" jdbcType="VARCHAR" property="permissionPath"/>
+            <result column="order2" jdbcType="INTEGER" property="order"/>
+          <collection property="children" javaType="List"
+                      ofType="com.partybuilding.webserver.dto.PermissionListDTO"
+                      autoMapping="true">
+            <id column="permissionId2" jdbcType="VARCHAR" property="permissionId"/>
+            <result column="permissionName2" jdbcType="VARCHAR" property="permissionName"/>
+              <result column="permissionUpId2" jdbcType="VARCHAR" property="permissionUpId"/>
+              <result column="permissionLevel2" jdbcType="INTEGER" property="permissionLevel"/>
+            <result column="permissionPath2" jdbcType="VARCHAR" property="permissionPath"/>
+            <result column="order3" jdbcType="INTEGER" property="order"/>
+          </collection>
+        </collection>
+    </resultMap>
+    <sql id="Base_Column_List">
+    permission_id, permission_name, permission_up_id, permission_level, permission_path, 
+    is_delete, create_time, order, update_time
+  </sql>
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from sys_permission
+        where permission_id = #{permissionId,jdbcType=VARCHAR}
+    </select>
+
+    <!-- 查询用户角色菜单栏信息-->
+    <!--  List<PermissionListDTO> getPermission(@Param("organizationId") String organizationId, @Param("postId") String postId);-->
+    <select id="getPermission" parameterType="java.lang.String" resultMap="PermissionListMap">
+     select perm.permission_id as permissionId, perm.permission_name as permissionName,perm.permission_up_id as permissionUpId,
+      perm.permission_level as permissionLevel, perm.permission_path as permissionPath,perm.order as order1
+      from sys_role role left  join sys_role_permission rp on role.role_id = rp.role_id
+        left  join sys_permission perm on perm.permission_id = rp.permission_id
+      where role.organization_id = #{organizationId,jdbcType=VARCHAR} and role.post_id = #{postId,jdbcType=VARCHAR}
+      order by perm.order
+  </select>
+
+    <select id="getAllPermissions"  resultMap="PermissionListMap">
+     select perm.permission_id as permissionId, perm.permission_name as permissionName,perm.permission_up_id as permissionUpId,
+      perm.permission_level as permissionLevel, perm.permission_path as permissionPath,perm.order as order1,p.permission_id as permissionId1, p.permission_name as permissionName1,p.permission_up_id as permissionUpId1,
+      p.permission_level as permissionLevel1, p.permission_path as permissionPath1,p.order as order2,
+      p2.permission_id as permissionId2, p2.permission_name as permissionName2,p2.permission_up_id as permissionUpId2,
+      p2.permission_level as permissionLevel2, p2.permission_path as permissionPath2,p2.order as order3
+      from  sys_permission perm
+        left join sys_permission p on perm.permission_id = p.permission_up_id
+        left outer join sys_permission p2 on p.permission_id = p2.permission_up_id
+      where perm.permission_level = 1
+      order by perm.order,p.order,p2.order
+
+  </select>
+
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from sys_permission
+    where permission_id = #{permissionId,jdbcType=VARCHAR}
+  </delete>
+    <insert id="insert" parameterType="com.partybuilding.webserver.entity.system.SysPermission">
+    insert into sys_permission (permission_id, permission_name, permission_up_id, 
+      permission_level, permission_path, is_delete, 
+      create_time, order, update_time
+      )
+    values (#{permissionId,jdbcType=VARCHAR}, #{permissionName,jdbcType=VARCHAR}, #{permissionUpId,jdbcType=VARCHAR}, 
+      #{permissionLevel,jdbcType=INTEGER}, #{permissionPath,jdbcType=VARCHAR}, #{isDelete,jdbcType=TINYINT}, 
+      #{createTime,jdbcType=TIMESTAMP}, #{order,jdbcType=INTEGER}, #{updateTime,jdbcType=TIMESTAMP}
+      )
+  </insert>
+    <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.system.SysPermission">
+        insert into sys_permission
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="permissionId != null">
+                permission_id,
+            </if>
+            <if test="permissionName != null">
+                permission_name,
+            </if>
+            <if test="permissionUpId != null">
+                permission_up_id,
+            </if>
+            <if test="permissionLevel != null">
+                permission_level,
+            </if>
+            <if test="permissionPath != null">
+                permission_path,
+            </if>
+            <if test="isDelete != null">
+                is_delete,
+            </if>
+            <if test="createTime != null">
+                create_time,
+            </if>
+            <if test="order != null">
+                order,
+            </if>
+            <if test="updateTime != null">
+                update_time,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="permissionId != null">
+                #{permissionId,jdbcType=VARCHAR},
+            </if>
+            <if test="permissionName != null">
+                #{permissionName,jdbcType=VARCHAR},
+            </if>
+            <if test="permissionUpId != null">
+                #{permissionUpId,jdbcType=VARCHAR},
+            </if>
+            <if test="permissionLevel != null">
+                #{permissionLevel,jdbcType=INTEGER},
+            </if>
+            <if test="permissionPath != null">
+                #{permissionPath,jdbcType=VARCHAR},
+            </if>
+            <if test="isDelete != null">
+                #{isDelete,jdbcType=TINYINT},
+            </if>
+            <if test="createTime != null">
+                #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="order != null">
+                #{order,jdbcType=INTEGER},
+            </if>
+            <if test="updateTime != null">
+                #{updateTime,jdbcType=TIMESTAMP},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.system.SysPermission">
+        update sys_permission
+        <set>
+            <if test="permissionName != null">
+                permission_name = #{permissionName,jdbcType=VARCHAR},
+            </if>
+            <if test="permissionUpId != null">
+                permission_up_id = #{permissionUpId,jdbcType=VARCHAR},
+            </if>
+            <if test="permissionLevel != null">
+                permission_level = #{permissionLevel,jdbcType=INTEGER},
+            </if>
+            <if test="permissionPath != null">
+                permission_path = #{permissionPath,jdbcType=VARCHAR},
+            </if>
+            <if test="isDelete != null">
+                is_delete = #{isDelete,jdbcType=TINYINT},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="order != null">
+                order = #{order,jdbcType=INTEGER},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime,jdbcType=TIMESTAMP},
+            </if>
+        </set>
+        where permission_id = #{permissionId,jdbcType=VARCHAR}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.system.SysPermission">
+    update sys_permission
+    set permission_name = #{permissionName,jdbcType=VARCHAR},
+      permission_up_id = #{permissionUpId,jdbcType=VARCHAR},
+      permission_level = #{permissionLevel,jdbcType=INTEGER},
+      permission_path = #{permissionPath,jdbcType=VARCHAR},
+      is_delete = #{isDelete,jdbcType=TINYINT},
+      create_time = #{createTime,jdbcType=TIMESTAMP},
+      order = #{order,jdbcType=INTEGER},
+      update_time = #{updateTime,jdbcType=TIMESTAMP}
+    where permission_id = #{permissionId,jdbcType=VARCHAR}
+  </update>
+</mapper>

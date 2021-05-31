@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.system.SysAnnouncementMapper">
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.system.SysAnnouncement">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="published_time" jdbcType="TIMESTAMP" property="publishedTime" />
+    <result column="notification_scope" jdbcType="VARCHAR" property="notificationScope" />
+    <result column="party_id" jdbcType="VARCHAR" property="partyId" />
+    <result column="content" jdbcType="LONGVARCHAR" property="content" />
+  </resultMap>
+  <resultMap id="SelectResultMap" type="com.partybuilding.webserver.dto.system.announcement.ResultAnnouncement">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="published_time" jdbcType="TIMESTAMP" property="publishTime" />
+    <result column="organization_name" jdbcType="VARCHAR" property="organizationName" />
+    <result column="name" jdbcType="VARCHAR" property="partyName" />
+    <result column="content" jdbcType="LONGVARCHAR" property="content" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    sys_announcement.id, published_time, structure.organization_name as organization_name, sys_party_member_information.name as name,content
+  </sql>
+  <sql id="Blob_Column_List">
+
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+
+    select
+    <include refid="Base_Column_List" />
+    ,
+    <include refid="Blob_Column_List" />
+    from sys_announcement
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+
+  <select id="selectByTimeAndContent" parameterType="com.partybuilding.webserver.dto.system.announcement.TimeAndContentDto" resultMap="SelectResultMap">
+    select
+    <include refid="Base_Column_List" />
+    FROM sys_announcement
+    LEFT JOIN sys_party_member_information on sys_party_member_information.id = sys_announcement.party_id
+    LEFT JOIN sys_organizational_structure structure on structure.organization_id = sys_announcement.notification_scope
+    <if test="rank>1" >
+      where (sys_announcement.notification_scope=#{organizationId,jdbcType=VARCHAR}
+      or
+      (sys_announcement.notification_scope in
+      (select organization_id FROM sys_organizational_structure where
+      rank=(select min(rank) from sys_organizational_structure))) or sys_announcement.notification_scope in (select organization_id FROM sys_organizational_structure where higher_organization_id=null))
+      <if test="publishTime!=null and content!=null">
+      and published_time like concat('%',#{publishTime},'%') and content like concat('%',#{content},'%')
+    </if>
+
+      <if test="publishTime==null and content!=null">
+         content like concat('%',#{content},'%')
+      </if>
+      <if test="content==null and publishTime!=null">
+        and published_time like concat('%',#{publishTime},'%')
+      </if>
+      order by sys_announcement.published_time desc
+    </if>
+    <if test="rank==1">
+
+      <if test="publishTime!=null and content!=null">
+        where published_time like concat('%',#{publishTime},'%') and content like concat('%',#{content},'%')
+      </if>
+      <if test="publishTime==null and content!=null">
+        where  content like concat('%',#{content},'%')
+      </if>
+      <if test="content==null and publishTime!=null">
+        where published_time like concat('%',#{publishTime},'%')
+      </if>
+      order by sys_announcement.published_time desc
+    </if>
+
+
+  </select>
+
+  <insert id="insert" parameterType="com.partybuilding.webserver.entity.system.SysAnnouncement">
+    insert into sys_announcement (id, published_time, notification_scope, 
+      party_id, content)
+    values (#{id,jdbcType=VARCHAR}, #{publishedTime,jdbcType=TIMESTAMP}, #{notificationScope,jdbcType=VARCHAR}, 
+      #{partyId,jdbcType=VARCHAR}, #{content,jdbcType=LONGVARCHAR})
+  </insert>
+
+</mapper>

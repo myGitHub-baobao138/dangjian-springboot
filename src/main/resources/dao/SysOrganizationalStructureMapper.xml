@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.system.SysOrganizationalStructureMapper">
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.system.SysOrganizationalStructure">
+
+        <result column="create_member_id" jdbcType="VARCHAR" property="createMemberId"/>
+    </resultMap>
+
+    <resultMap id="SearchAllResultMap" type="com.partybuilding.webserver.dto.system.structure.SearchStructureDto">
+        <id column="organization_id" jdbcType="VARCHAR" property="id"/>
+        <result column="organization_name" jdbcType="VARCHAR" property="organizationName"/>
+        <result column="remark" jdbcType="VARCHAR" property="remark"/>
+        <result column="rank" jdbcType="BIT" property="rank"/>
+        <result column="amount" property="amount"></result>
+        <collection property="children"
+                    ofType="com.partybuilding.webserver.dto.system.structure.SearchStructureDto"
+                    column="organization_id" select="selectNext">
+        </collection>
+    </resultMap>
+
+    <resultMap id="SearchPartResultMap" type="com.partybuilding.webserver.dto.system.structure.SearchStructureDto">
+        <id column="organization_id" jdbcType="VARCHAR" property="id"/>
+        <result column="organization_name" jdbcType="VARCHAR" property="organizationName"/>
+        <collection property="children"
+                    ofType="com.partybuilding.webserver.dto.system.structure.SearchStructureDto"
+                    column="organization_id" select="selectNext">
+            <id column="organization_id" jdbcType="VARCHAR" property="id"/>
+            <result column="organization_name" jdbcType="VARCHAR" property="organizationName"/>
+        </collection>
+    </resultMap>
+
+    <resultMap id="searchByRankAndPostId" type="com.partybuilding.webserver.dto.system.structure.SearchStructureDto">
+        <id column="organization_id" jdbcType="VARCHAR" property="id"/>
+        <result column="organization_name" jdbcType="VARCHAR" property="organizationName"/>
+        <result column="remark" jdbcType="VARCHAR" property="remark"/>
+        <result column="rank" jdbcType="BIT" property="rank"/>
+        <result column="amount" property="amount"></result>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+    structure.create_member_id,structure.organization_name,structure.rank,
+    structure.remark,structure.organization_id,count(distinct party_id) as amount,higher_organization_id
+    </sql>
+
+    <!--查询所有的组织-->
+    <select id="SearchOrgNameAndId"
+            resultType="com.partybuilding.webserver.dto.system.structure.OrganizationNameAndIdDto">
+    select organization_id as organizationId,organization_name as organizationName from sys_organizational_structure
+  </select>
+
+    <!--查询对应组织的名称，id，以及对应组织下面的组织-->
+    <select id="SearchSingleOrgNameAndId" parameterType="java.lang.String"
+            resultType="com.partybuilding.webserver.dto.system.structure.OrganizationNameAndIdDto">
+    select organization_id as organizationId,organization_name as organizationName from sys_organizational_structure
+    where higher_organization_id = #{organizationId,jdbcType=VARCHAR}
+    OR  organization_id = #{organizationId,jdbcType=VARCHAR} order by rank
+  </select>
+    
+    <!--子查询-->
+    <select id="selectNext" resultMap="SearchAllResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from sys_organizational_structure as structure
+        left join sys_party_organization_post on sys_party_organization_post.organization_id=structure.organization_id
+        group by structure.organization_id
+        having
+        higher_organization_id = #{organization_id,jdbcType=VARCHAR}
+    </select>
+
+    <select id="isDelete" resultType="com.partybuilding.webserver.dto.system.structure.OrganizationIdAndNumber" parameterType="java.lang.String">
+        select structure.organization_id as organizationId from sys_organizational_structure as structure
+        where
+        higher_organization_id = #{organizationId,jdbcType=VARCHAR}
+    </select>
+
+    <select id="selectRank" parameterType="java.lang.String" resultType="java.lang.Integer">
+        select rank from sys_organizational_structure where organization_id=#{organizationId}
+    </select>
+
+
+    <!--父查询-->
+    <select id="searchAllStructure" resultMap="SearchAllResultMap" parameterType="java.lang.Integer">
+        select
+        <include refid="Base_Column_List"/>
+        from sys_organizational_structure as structure
+        left join sys_party_organization_post on sys_party_organization_post.organization_id=structure.organization_id
+        group by structure.organization_id
+        having
+        rank = #{rank,jdbcType=VARCHAR}
+    </select>
+
+    <!--父查询-->
+    <select id="selectStructureParty" resultMap="SearchPartResultMap">
+        select rank,
+        structure.organization_id,organization_name
+        from sys_organizational_structure as structure
+        left join sys_party_organization_post on sys_party_organization_post.organization_id=structure.organization_id
+        group by structure.organization_id
+        having
+        rank = ${rank} and organization_id = #{organizationId,jdbcType=VARCHAR}
+    </select>
+    <!--根据等级和组织名称查询数据          还在改-->
+    <select id="searchByRankAndPostId" parameterType="com.partybuilding.webserver.dto.system.structure.RankAndOrganization"
+            resultMap="searchByRankAndPostId">
+        select
+        <include refid="Base_Column_List" />
+        from sys_organizational_structure structure
+        left join sys_party_organization_post on sys_party_organization_post.organization_id=structure.organization_id
+        group by structure.organization_id
+        having
+        <if test="rank!=null and rank!=0">
+            rank = #{rank,jdbcType=VARCHAR}
+            <if test="organizationName!=null and organizationName!=''">
+                and
+            </if>
+        </if>
+        <if test="organizationName!=null and organizationName!=''">
+             organization_name LIKE CONCAT('%',#{organizationName},'%')
+        </if>
+
+    </select>
+    <!--根据组织等级查询数据-->
+    <select id="searchByRank" parameterType="java.lang.Integer" resultMap="searchByRankAndPostId">
+        select
+        <include refid="Base_Column_List" />
+        from sys_organizational_structure structure
+        left join sys_party_organization_post on sys_party_organization_post.organization_id=structure.organization_id
+        group by structure.organization_id
+        having
+        rank = #{rank,jdbcType=VARCHAR}
+    </select>
+    <!--根据职务查询组织架构数据-->
+    <select id="searchByPostName" parameterType="java.lang.String" resultMap="searchByRankAndPostId">
+        select
+        <include refid="Base_Column_List" />
+        from sys_organizational_structure structure
+        left join sys_party_organization_post on sys_party_organization_post.organization_id=structure.organization_id
+        group by structure.organization_id
+        having
+         organization_name LIKE CONCAT('%',#{organizationName},'%')
+    </select>
+    <select id="getOrganizationIdByName" resultType="java.lang.String">
+    select organization_id from sys_organizational_structure
+    where organization_name=#{organizationName,jdbcType=VARCHAR}
+  </select>
+    <select id="repeatOrganization" parameterType="com.partybuilding.webserver.dto.system.structure.NameAndHigherId" resultType="string">
+        select organization_id from sys_organizational_structure
+        where organization_name=#{organizationName,jdbcType=VARCHAR}
+        and higher_organization_id = #{higherOrganizationId,jdbcType=VARCHAR}
+    </select>
+
+    <select id="selectHigherOrgAndRank" parameterType="com.partybuilding.webserver.dto.system.structure.HigherOrgAndRank"
+            resultType="com.partybuilding.webserver.dto.system.structure.OrganizationNameAndIdDto">
+         select organization_id as organizationId,organization_name as organizationName from sys_organizational_structure
+
+        <if test="partyOrganizationRank==1">
+            where rank = ${rank-1}
+        </if>
+        <if test="partyOrganizationRank>1">
+            where rank = ${rank-1}
+            <if test="rank==2">
+
+            </if>
+            <if test="rank==3">
+                and organization_id=#{organizationId,jdbcType=VARCHAR}
+            </if>
+
+        </if>
+    </select>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from sys_organizational_structure
+        where organization_id = #{organizationId,jdbcType=VARCHAR}
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from sys_organizational_structure
+    where organization_id = #{organizationId,jdbcType=VARCHAR}
+  </delete>
+
+    <!--新增架构-->
+    <insert id="insert" parameterType="com.partybuilding.webserver.entity.system.SysOrganizationalStructure">
+    insert into sys_organizational_structure (organization_id, higher_organization_id,
+      remark, rank, create_member_id,organization_name
+      )
+    values (#{organizationId,jdbcType=VARCHAR}, #{higherOrganizationId,jdbcType=VARCHAR},
+      #{remark,jdbcType=VARCHAR}, #{rank,jdbcType=BIT}, #{createMemberId,jdbcType=VARCHAR},#{organizationName,jdbcType=VARCHAR}
+      )
+  </insert>
+
+    <!--修改组织架构-->
+    <update id="updateByPrimaryKey"
+            parameterType="com.partybuilding.webserver.entity.system.SysOrganizationalStructure">
+    update sys_organizational_structure
+    set organization_name = #{organizationName,jdbcType=VARCHAR},
+      higher_organization_id = #{higherOrganizationId,jdbcType=VARCHAR},
+      remake = #{remake,jdbcType=VARCHAR},
+      rank = #{rank,jdbcType=BIT},
+      create_member_id = #{createMemberId,jdbcType=VARCHAR}
+    where organization_id = #{organizationId,jdbcType=VARCHAR}
+  </update>
+
+    <update id="updateInfo" parameterType="com.partybuilding.webserver.dto.system.structure.UpdateNameAndRemarkDto">
+        update sys_organizational_structure
+        set organization_name = #{organizationName,jdbcType=VARCHAR},
+        remark = #{remark,jdbcType=VARCHAR}
+        where organization_id = #{organizationId,jdbcType=VARCHAR}
+    </update>
+</mapper>

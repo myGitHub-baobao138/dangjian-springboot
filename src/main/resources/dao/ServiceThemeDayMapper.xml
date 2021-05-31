@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceThemeDayMapper">
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceThemeDay">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="organization_id" jdbcType="VARCHAR" property="organizationId" />
+        <result column="editor_id" jdbcType="VARCHAR" property="editorId" />
+        <result column="status" jdbcType="VARCHAR" property="status" />
+        <result column="title" jdbcType="VARCHAR" property="title" />
+        <result column="party_members_number" jdbcType="VARCHAR" property="partyMembersNumber" />
+        <result column="branch_secretary_id" jdbcType="VARCHAR" property="branchSecretaryId" />
+        <result column="branch_secretary_name" jdbcType="VARCHAR" property="branchSecretaryName" />
+        <result column="phone" jdbcType="VARCHAR" property="phone" />
+        <result column="learning_time" jdbcType="TIMESTAMP" property="learningTime" />
+        <result column="release_time" jdbcType="TIMESTAMP" property="releaseTime" />
+        <result column="learning_place" jdbcType="VARCHAR" property="learningPlace" />
+        <result column="learning_content" jdbcType="VARCHAR" property="learningContent" />
+        <result column="learning_way" jdbcType="VARCHAR" property="learningWay" />
+        <result column="month" jdbcType="VARCHAR" property="month" />
+        <result column="participants_id" jdbcType="VARCHAR" property="participantsId" />
+        <result column="overall_effect" jdbcType="VARCHAR" property="overallEffect" />
+        <result column="likes_number" jdbcType="VARCHAR" property="likesNumber" />
+        <result column="views_number" jdbcType="VARCHAR" property="viewsNumber" />
+        <result column="top" jdbcType="VARCHAR" property="top" />
+    </resultMap>
+    <resultMap id="ThemeDayTableDTO" type="com.partybuilding.webserver.dto.service.themeDay.ThemeDayTableDto">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="organization_name" jdbcType="VARCHAR" property="organizationName" />
+        <result column="branch_secretary_name" jdbcType="VARCHAR" property="branchSecretaryName" />
+        <result column="editor_name" jdbcType="VARCHAR" property="editorName" />
+        <result column="status" jdbcType="VARCHAR" property="status" />
+        <result column="title" jdbcType="VARCHAR" property="title" />
+        <result column="release_time" jdbcType="TIMESTAMP" property="releaseTime" />
+        <result column="likes_number" jdbcType="VARCHAR" property="likesNumber" />
+        <result column="views_number" jdbcType="VARCHAR" property="viewsNumber" />
+        <result column="top" jdbcType="VARCHAR" property="top" />
+    </resultMap>
+    <resultMap id="ThemeDayDetailsDTO" type="com.partybuilding.webserver.dto.service.themeDay.ThemeDayDetailsDTO">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="organization_id" jdbcType="VARCHAR" property="organizationId" />
+        <result column="organization_name" jdbcType="VARCHAR" property="organizationName" />
+        <result column="editor_id" jdbcType="VARCHAR" property="editorId" />
+        <result column="editor_name" jdbcType="VARCHAR" property="editorName" />
+        <result column="status" jdbcType="VARCHAR" property="status" />
+        <result column="title" jdbcType="VARCHAR" property="title" />
+        <result column="party_members_number" jdbcType="VARCHAR" property="partyMembersNumber" />
+        <result column="branch_secretary_id" jdbcType="VARCHAR" property="branchSecretaryId" />
+        <result column="branch_secretary_name" jdbcType="VARCHAR" property="branchSecretaryName" />
+        <result column="phone" jdbcType="VARCHAR" property="phone" />
+        <result column="learning_time" jdbcType="VARCHAR" property="learningTime" />
+        <result column="release_time" jdbcType="VARCHAR" property="releaseTime" />
+        <result column="learning_place" jdbcType="VARCHAR" property="learningPlace" />
+        <result column="learning_content" jdbcType="VARCHAR" property="learningContent" />
+        <result column="learning_way" jdbcType="VARCHAR" property="learningWay" />
+        <result column="month" jdbcType="VARCHAR" property="month" />
+        <result column="participants_id" jdbcType="VARCHAR" property="participantsId" />
+        <result column="participants_name" jdbcType="VARCHAR" property="participantsName" />
+        <result column="overall_effect" jdbcType="VARCHAR" property="overallEffect" />
+        <result column="likes_number" jdbcType="VARCHAR" property="likesNumber" />
+        <result column="views_number" jdbcType="VARCHAR" property="viewsNumber" />
+    </resultMap>
+
+    <resultMap id="participateList" type="com.partybuilding.webserver.dto.service.threeSessionOneClass.ParticipateReturnDTO">
+        <result column="id" jdbcType="VARCHAR" property="key"/>
+        <result column="name" jdbcType="VARCHAR" property="label"/>
+    </resultMap>
+    <!--<resultMap id="getPartyMember" type="">-->
+
+    <!--</resultMap>-->
+    <sql id="Base_Column_List">
+        id, organization_id, editor_id, status, title, party_members_number, branch_secretary_id,
+        phone, learning_time, release_time, learning_place, learning_content, learning_way,
+        month, participants_id, overall_effect, likes_number, views_number, top
+    </sql>
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from service_theme_day
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+    <!--得到列表-->
+    <select id="getThemeDayTableList" parameterType="com.partybuilding.webserver.dto.service.themeDay.ThemeDayQueryDTO"
+    resultMap="ThemeDayTableDTO">
+        select td.id,organization_name, pmi1.name as branch_secretary_name ,td.title,td.release_time,pmi2.name as editor_name, td.`status`,td.views_number,td.likes_number ,td.top from  service_theme_day as td
+        left join sys_organizational_structure as os
+        on td.organization_id = os .organization_id
+        left join sys_party_member_information as pmi1 on pmi1.id=td.branch_secretary_id
+        left join sys_party_member_information as pmi2 on pmi2.id=td.editor_id
+        where td.status!= 0
+        <if test="rank == 2">
+          and td.organization_id = #{organizationId,jdbcType=VARCHAR}
+           or td.organization_id in (select organization_id from sys_organizational_structure as os2 where
+           os2.higher_organization_id = #{organizationId,jdbcType=VARCHAR})
+        </if>
+        <if test="rank == 3">
+          and td.organization_id = #{organizationId,jdbcType=VARCHAR}
+        </if>
+      <if test="organizationName!=null and organizationName!=''">
+        and organization_name like CONCAT(CONCAT('%',#{organizationName,jdbcType=VARCHAR},'%'))
+      </if>
+      <if test="releaseTime !=null and releaseTime != ''">
+        and release_time like CONCAT(CONCAT('%',#{releaseTime,jdbcType=VARCHAR},'%'))
+      </if>
+      order by td.top , td.status
+    </select>
+    <!--得到详情-->
+    <select id="getThemeDayDetails" parameterType="java.lang.String" resultMap="ThemeDayDetailsDTO">
+        select td.title, os.organization_name ,os.organization_id , td.party_members_number , pmi1.`name` as branch_secretary_name ,pmi1.id,
+               td.phone ,learning_time ,learning_place ,learning_content, learning_way , `month` ,
+               group_concat(pmi.name order by pmi.id) as participants_name , overall_effect
+        from service_theme_day as td
+        left join sys_organizational_structure as os
+            on td.organization_id = os .organization_id
+        left join sys_party_member_information as pmi1
+            on pmi1.id = td.branch_secretary_id
+        left join sys_party_member_information as pmi
+            on find_in_set(pmi.id,td.participants_id)
+        where td.id=#{id,jdbcType=VARCHAR}
+        group by td.id
+    </select>
+    <!--得到默认数据-->
+    <select id="getInsertThemeDayDefaultThree" parameterType="java.lang.String" resultMap="ThemeDayDetailsDTO">
+        select pop.organization_id , organization_name , pmi.`name` as branch_secretary_name, pmi.id as branch_secretary_id, contact as phone
+        from sys_party_organization_post as pop
+                 left join sys_party_member_information as pmi on pop.party_id = pmi.id
+                 left join sys_organizational_structure as os on pop.organization_id = os.organization_id
+                 left join sys_post as post on pop.post_id = post.id
+        where  pop.organization_id = #{organizationId,jdbcType = VARCHAR}
+          and post.rank = 1
+    </select>
+    <!--得到组织下的党员数-->
+    <select id="getPartyMemberNumber" parameterType="com.partybuilding.webserver.dto.service.themeDay.ThemeDayPartyMemberNumberDTO" resultType="java.lang.Integer">
+        select count(distinct pop.party_id) from sys_party_organization_post as pop
+        left join  sys_party_member_information as pmi  on pop.party_id = pmi.id
+      <if test="rank==2">
+          where organization_id = #{organizationId,jdbcType = VARCHAR}
+          or organization_id in
+             (select organization_id from sys_organizational_structure
+             where higher_organization_id = #{organizationId,jdbcType = VARCHAR})
+      </if>
+      <if test="rank == 3">
+          where organization_id = #{organizationId,jdbcType = VARCHAR}
+      </if>
+        order by party_id
+    </select>
+  <!--得到参加党主题日的党员姓名与id-->
+    <select id="getAttendThemeDayPartyList" parameterType="java.lang.String" resultMap="participateList">
+        select pmi.id , pmi.name from sys_party_member_information as pmi where
+        pmi.id in(
+        select substring_index(substring_index(td.participants_id,',',b.help_topic_id+1),',',-1) as participants_id
+        from service_theme_day as td
+        join mysql.help_topic as b on b.help_topic_id &lt; (
+        length (td.participants_id)-length(replace(td.participants_id,',',''))+1)
+        where td.id = #{id,jdbcType = VARCHAR}
+        )
+    </select>
+    <!--得到参加党主题日的党员id-->
+    <select id="getAttendThemeDayPartyIdList" parameterType="java.lang.String" resultType="java.lang.String">
+        select participants_id from service_theme_day where id = #{id,jdbcType=VARCHAR}
+    </select>
+   <!--删除党主题日-->
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+        delete from service_theme_day
+        where id = #{id,jdbcType=VARCHAR}
+    </delete>
+
+    <insert id="insert" parameterType="com.partybuilding.webserver.entity.service.ServiceThemeDay">
+        insert into service_theme_day (id, organization_id, editor_id,
+                                       status, title, party_members_number,
+                                       branch_secretary_id, phone, learning_time,
+                                       release_time, learning_place, learning_content,
+                                       learning_way, month, participants_id,
+                                       overall_effect, likes_number, views_number,
+                                       top)
+        values (#{id,jdbcType=VARCHAR}, #{organizationId,jdbcType=VARCHAR}, #{editorId,jdbcType=VARCHAR},
+                #{status,jdbcType=VARCHAR}, #{title,jdbcType=VARCHAR}, #{partyMembersNumber,jdbcType=VARCHAR},
+                #{branchSecretaryId,jdbcType=VARCHAR}, #{phone,jdbcType=VARCHAR}, #{learningTime,jdbcType=TIMESTAMP},
+                #{releaseTime,jdbcType=TIMESTAMP}, #{learningPlace,jdbcType=VARCHAR}, #{learningContent,jdbcType=VARCHAR},
+                #{learningWay,jdbcType=VARCHAR}, #{month,jdbcType=VARCHAR}, #{participantsId,jdbcType=VARCHAR},
+                #{overallEffect,jdbcType=VARCHAR}, #{likesNumber,jdbcType=VARCHAR}, #{viewsNumber,jdbcType=VARCHAR},
+                #{top,jdbcType=VARCHAR})
+    </insert>
+
+    <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.service.ServiceThemeDay">
+        insert into service_theme_day
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="organizationId != null">
+                organization_id,
+            </if>
+            <if test="editorId != null">
+                editor_id,
+            </if>
+            <if test="status != null">
+                status,
+            </if>
+            <if test="title != null">
+                title,
+            </if>
+            <if test="partyMembersNumber != null">
+                party_members_number,
+            </if>
+            <if test="branchSecretaryId != null">
+                branch_secretary_id,
+            </if>
+            <if test="phone != null">
+                phone,
+            </if>
+            <if test="learningTime != null">
+                learning_time,
+            </if>
+            <if test="releaseTime != null">
+                release_time,
+            </if>
+            <if test="learningPlace != null">
+                learning_place,
+            </if>
+            <if test="learningContent != null">
+                learning_content,
+            </if>
+            <if test="learningWay != null">
+                learning_way,
+            </if>
+            <if test="month != null">
+                month,
+            </if>
+            <if test="participantsId != null">
+                participants_id,
+            </if>
+            <if test="overallEffect != null">
+                overall_effect,
+            </if>
+            <if test="likesNumber != null">
+                likes_number,
+            </if>
+            <if test="viewsNumber != null">
+                views_number,
+            </if>
+            <if test="top != null">
+                top,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="organizationId != null">
+                #{organizationId,jdbcType=VARCHAR},
+            </if>
+            <if test="editorId != null">
+                #{editorId,jdbcType=VARCHAR},
+            </if>
+            <if test="status != null">
+                #{status,jdbcType=VARCHAR},
+            </if>
+            <if test="title != null">
+                #{title,jdbcType=VARCHAR},
+            </if>
+            <if test="partyMembersNumber != null">
+                #{partyMembersNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="branchSecretaryId != null">
+                #{branchSecretaryId,jdbcType=VARCHAR},
+            </if>
+            <if test="phone != null">
+                #{phone,jdbcType=VARCHAR},
+            </if>
+            <if test="learningTime != null">
+                #{learningTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="releaseTime != null">
+                #{releaseTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="learningPlace != null">
+                #{learningPlace,jdbcType=VARCHAR},
+            </if>
+            <if test="learningContent != null">
+                #{learningContent,jdbcType=VARCHAR},
+            </if>
+            <if test="learningWay != null">
+                #{learningWay,jdbcType=VARCHAR},
+            </if>
+            <if test="month != null">
+                #{month,jdbcType=VARCHAR},
+            </if>
+            <if test="participantsId != null">
+                #{participantsId,jdbcType=VARCHAR},
+            </if>
+            <if test="overallEffect != null">
+                #{overallEffect,jdbcType=VARCHAR},
+            </if>
+            <if test="likesNumber != null">
+                #{likesNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="viewsNumber != null">
+                #{viewsNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="top != null">
+                #{top,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+    <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.service.ServiceThemeDay">
+        update service_theme_day
+        <set>
+            <if test="organizationId != null">
+                organization_id = #{organizationId,jdbcType=VARCHAR},
+            </if>
+            <if test="editorId != null">
+                editor_id = #{editorId,jdbcType=VARCHAR},
+            </if>
+            <if test="status != null">
+                status = #{status,jdbcType=VARCHAR},
+            </if>
+            <if test="title != null">
+                title = #{title,jdbcType=VARCHAR},
+            </if>
+            <if test="partyMembersNumber != null">
+                party_members_number = #{partyMembersNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="branchSecretaryId != null">
+                branch_secretary_id = #{branchSecretaryId,jdbcType=VARCHAR},
+            </if>
+            <if test="phone != null">
+                phone = #{phone,jdbcType=VARCHAR},
+            </if>
+            <if test="learningTime != null">
+                learning_time = #{learningTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="releaseTime != null">
+                release_time = #{releaseTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="learningPlace != null">
+                learning_place = #{learningPlace,jdbcType=VARCHAR},
+            </if>
+            <if test="learningContent != null">
+                learning_content = #{learningContent,jdbcType=VARCHAR},
+            </if>
+            <if test="learningWay != null">
+                learning_way = #{learningWay,jdbcType=VARCHAR},
+            </if>
+            <if test="month != null">
+                month = #{month,jdbcType=VARCHAR},
+            </if>
+            <if test="participantsId != null">
+                participants_id = #{participantsId,jdbcType=VARCHAR},
+            </if>
+            <if test="overallEffect != null">
+                overall_effect = #{overallEffect,jdbcType=VARCHAR},
+            </if>
+            <if test="likesNumber != null">
+                likes_number = #{likesNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="viewsNumber != null">
+                views_number = #{viewsNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="top != null">
+                top = #{top,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.service.ServiceThemeDay">
+        update service_theme_day
+        set
+            organization_id = #{organizationId,jdbcType=VARCHAR},
+            editor_id = #{editorId,jdbcType=VARCHAR},
+            status = #{status,jdbcType=VARCHAR},
+            title = #{title,jdbcType=VARCHAR},
+            party_members_number = #{partyMembersNumber,jdbcType=VARCHAR},
+            branch_secretary_id = #{branchSecretaryId,jdbcType=VARCHAR},
+            phone = #{phone,jdbcType=VARCHAR},
+            learning_time = #{learningTime,jdbcType=TIMESTAMP},
+            release_time = #{releaseTime,jdbcType=TIMESTAMP},
+            learning_place = #{learningPlace,jdbcType=VARCHAR},
+            learning_content = #{learningContent,jdbcType=VARCHAR},
+            learning_way = #{learningWay,jdbcType=VARCHAR},
+            month = #{month,jdbcType=VARCHAR},
+            participants_id = #{participantsId,jdbcType=VARCHAR},
+            overall_effect = #{overallEffect,jdbcType=VARCHAR},
+            likes_number = #{likesNumber,jdbcType=VARCHAR},
+            views_number = #{viewsNumber,jdbcType=VARCHAR},
+            top = #{top,jdbcType=VARCHAR}
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+
+    <update id="deleteThemeDay" parameterType="java.lang.String">
+        update service_theme_day set status = 0 where id=#{id,jdbcType=VARCHAR}
+    </update>
+
+    <update id="postThemeDay" parameterType="java.lang.String">
+      update  service_theme_day  set status = 2 , release_time = now() where id in
+        <foreach collection="array" item="ids" open="(" separator="," close=")">
+            #{ids,jdbcType=VARCHAR}
+        </foreach>
+    </update>
+
+    <update id="updateTop" parameterType="java.lang.String">
+        update service_theme_day set top=0 where id=#{id,jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateNotTop" parameterType="java.lang.String">
+        update service_theme_day set top=1 where id=#{id,jdbcType=VARCHAR}
+    </update>
+
+</mapper>

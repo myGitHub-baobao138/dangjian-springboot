@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.dynamic.DynamicPublishEssayMapper">
+
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.dto.dynamic.essay.PublishEssayDto">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="academy" jdbcType="VARCHAR" property="academy"/>
+        <result column="title" jdbcType="VARCHAR" property="title"/>
+        <result column="content" jdbcType="VARCHAR" property="content"/>
+        <result column="source" jdbcType="INTEGER" property="source"/>
+        <result column="contributor" jdbcType="VARCHAR" property="contributor"/>
+        <result column="contributeTime" jdbcType="DATE" property="contributeTime"/>
+        <result column="check_status" jdbcType="INTEGER" property="essayStatus"/>
+        <result column="publishTime" jdbcType="DATE" property="publishTime"/>
+        <result column="cancel_time" jdbcType="DATE" property="outTime"/>
+        <result column="top_sort" jdbcType="INTEGER" property="isTop"/>
+    </resultMap>
+
+    <resultMap id="updateEssayMap" type="com.partybuilding.webserver.dto.dynamic.essay.InsertEssayDto">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="title" jdbcType="VARCHAR" property="title"/>
+        <result column="content" jdbcType="VARCHAR" property="content"/>
+        <result column="source" jdbcType="INTEGER" property="source"/>
+        <result column="pic_url" jdbcType="VARCHAR" property="picUrl"/>
+        <result column="plugin_url" jdbcType="INTEGER" property="pluginUrl"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+      dyarticles.id, title, content, source, contribute_time as contributeTime, check_time as publishTime,
+      check_status, cancel_time,sos.organization_name as academy, inf.name as contributor,top_sort
+    </sql>
+
+    <select id="getPublishEssayList" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dynamic_article_management as dyarticles
+        LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+        LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+        where (check_status != -1 and check_status != 0 )
+        <if test="organizationRank == 2">
+            and ((dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR})
+            or dyarticles.organization_id in(
+            select sos1.organization_id from sys_organizational_structure as sos1
+            where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+        </if>
+    </select>
+
+    <!--下架单篇文章-->
+    <update id="makeSingleEssayLeave" parameterType="java.lang.String">
+        update dynamic_article_management
+        <set>
+            check_status = -3,
+            <if test="operatorId !=null ">
+                cancel_id = #{operatorId, jdbcType=VARCHAR},
+            </if>
+            <if test="operateTime !=null">
+                cancel_time = #{operateTime, jdbcType=DATE},
+            </if>
+            <if test="details != null">
+                cancel_discription = #{details, jdbcType=VARCHAR}
+            </if>
+        </set>
+        where id = #{essayId,jdbcType=VARCHAR}
+    </update>
+
+    <!--批量下架文章 需要更改 下架人，下架时间， 审核状态改为 -3 ，下架说明  -->
+    <update id="makeManyEssayLeave" parameterType="com.partybuilding.webserver.dto.dynamic.essay.CheckFormDto">
+        update dynamic_article_management
+        <set>
+            check_status = -3,
+            <if test="checkTime != null">
+                cancel_time = #{checkTime,jdbcType=DATE},
+            </if>
+            <if test="checkerId!= null">
+                cancel_id = #{checkerId,jdbcType=VARCHAR},
+            </if>
+            <if test="details != null">
+                cancel_discription = #{details,jdbcType=VARCHAR}
+            </if>
+        </set>
+        where id in
+        <foreach collection="checkedIdList" item="essayId" index="index" open="("  separator="," close=")">
+            #{essayId,jdbcType=VARCHAR}
+        </foreach>
+    </update>
+
+    <!--发布单篇文章/草稿发布-->
+    <update id="publishSingleEssayFromList">
+        update dynamic_article_management
+        <set>
+            check_status = 1,
+            <if test="checkTime !=null">
+                check_time = #{checkTime, jdbcType=DATE},
+            </if>
+            <if test="checkerId!= null">
+                reviewer_id = #{checkerId,jdbcType=VARCHAR}
+            </if>
+        </set>
+        where id = #{checkedEssayId,jdbcType=VARCHAR}
+    </update>
+
+    <!--批量发布文章（草稿发布）白写了目测不需要-->
+    <update id="publishManyEssayFromList" >
+        update dynamic_article_management
+        <set>
+            check_status = 1,
+            <if test="checkTime!=null">
+                check_time = #{checkTime, jdbcType=DATE},
+            </if>
+            <if test="checkerId!= null">
+                reviewer_id = #{checkerId,jdbcType=VARCHAR}
+            </if>
+        </set>
+        where id in
+        <foreach collection="checkedIdList" item="essayId" index="index" open="("  separator="," close=")">
+            #{essayId,jdbcType=VARCHAR}
+        </foreach>
+    </update>
+
+    <!--置顶某篇文章-->
+    <update id="setTop" parameterType="java.lang.String">
+        update dynamic_article_management
+        <set>
+            top_sort = 0
+        </set>
+        where id = #{essayId,jdbcType=VARCHAR}
+    </update>
+
+    <!--取消置顶某篇文章-->
+    <update id="setOutTop" parameterType="java.lang.String">
+        update dynamic_article_management
+        <set>
+            top_sort = 1
+        </set>
+        where id = #{checkedEssayId,jdbcType=VARCHAR}
+    </update>
+
+    <!--按时间段查询 发布文章列表信息-->
+    <select id="queryByTimeZone" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dynamic_article_management as dyarticles
+        LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+        LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+        LEFT JOIN sys_party_member_information as inf1 on inf1.id =  dyarticles.reviewer_id
+        where (check_status != -1 and check_status !=0)
+        and ( dyarticles.contribute_time between #{startTime, jdbcType=DATE} and #{endTime, jdbcType=DATE}
+        or dyarticles.check_time between #{startTime, jdbcType=DATE} and #{endTime, jdbcType=DATE}
+        or dyarticles.cancel_time between #{startTime, jdbcType=DATE} and #{endTime, jdbcType=DATE})
+        <if test="organizationRank == 2">
+            and ((dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR})
+            or dyarticles.organization_id in(
+            select sos1.organization_id from sys_organizational_structure as sos1
+            where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+        </if>
+    </select>
+
+    <!--按输入内容查询 发布文章列表信息-->
+    <select id="queryByInputContent" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dynamic_article_management as dyarticles
+        LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+        LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+        LEFT JOIN sys_party_member_information as inf1 on inf1.id =  dyarticles.reviewer_id
+        where (check_status != -1 and check_status !=0)
+        and (dyarticles.title like #{inputContent, jdbcType=VARCHAR}
+        or dyarticles.content like #{inputContent, jdbcType=VARCHAR}
+        or inf.name like #{inputContent, jdbcType=VARCHAR}
+        or inf1.name like #{inputContent, jdbcType=VARCHAR}
+        or sos.organization_name like  #{inputContent, jdbcType=VARCHAR})
+        <if test="organizationRank == 2">
+            and ((dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR})
+            or dyarticles.organization_id in(
+            select sos1.organization_id from sys_organizational_structure as sos1
+            where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+        </if>
+
+
+    </select>
+
+    <!--按文章来源查询 发布文章列表信息-->
+    <select id="queryBySource" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dynamic_article_management as dyarticles
+        LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+        LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+        LEFT JOIN sys_party_member_information as inf1 on inf1.id =  dyarticles.reviewer_id
+        where (check_status != -1 and check_status !=0)
+        and source = #{source, jdbcType = INTEGER}
+        <if test="organizationRank == 2">
+            and ((dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR})
+            or dyarticles.organization_id in(
+            select sos1.organization_id from sys_organizational_structure as sos1
+            where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+        </if>
+    </select>
+
+    <!--按输入内容和时间段同时查询 发布文章列表信息-->
+    <select id="queryByInputAndTime" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dynamic_article_management as dyarticles
+        LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+        LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+        LEFT JOIN sys_party_member_information as inf1 on inf1.id =  dyarticles.reviewer_id
+        where (check_status != -1 and check_status !=0)
+        and (dyarticles.title like #{inputContent, jdbcType=VARCHAR}
+          or dyarticles.content like #{inputContent, jdbcType=VARCHAR}
+          or inf.name like #{inputContent, jdbcType=VARCHAR}
+          or inf1.name like #{inputContent, jdbcType=VARCHAR}
+          or sos.organization_name like  #{inputContent, jdbcType=VARCHAR})
+        and ( dyarticles.contribute_time between #{startTime, jdbcType=DATE} and #{endTime, jdbcType=DATE}
+          or dyarticles.check_time between #{startTime, jdbcType=DATE} and #{endTime, jdbcType=DATE}
+          or dyarticles.cancel_time between #{startTime, jdbcType=DATE} and #{endTime, jdbcType=DATE})
+        <if test="organizationRank == 2">
+            and ((dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR})
+              or dyarticles.organization_id in(
+                select sos1.organization_id from sys_organizational_structure as sos1
+                where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+        </if>
+    </select>
+
+    <!--按文章来源和时间段同时查询 发布文章列表信息-->
+    <select id="queryBySourceAndTime" resultMap="BaseResultMap">
+        select <include refid="Base_Column_List" />
+        from dynamic_article_management as dyarticles
+        LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+        LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+        LEFT JOIN sys_party_member_information as inf1 on inf1.id =  dyarticles.reviewer_id
+        where (check_status != -1 and check_status !=0)
+        and source = #{source, jdbcType = INTEGER}
+        and ( dyarticles.contribute_time between #{startTime, jdbcType=DATE} and #{endTime, jdbcType=DATE}
+        or dyarticles.check_time between #{startTime, jdbcType=DATE} and #{endTime, jdbcType=DATE}
+        or dyarticles.cancel_time between #{startTime, jdbcType=DATE} and #{endTime, jdbcType=DATE})
+        <if test="organizationRank == 2">
+            and ((dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR})
+            or dyarticles.organization_id in(
+            select sos1.organization_id from sys_organizational_structure as sos1
+            where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+        </if>
+    </select>
+
+    <!--删除草稿-->
+    <delete id="deleteByIdFromList" parameterType="java.lang.String">
+        delete from dynamic_article_management
+        where id = #{essayId, jdbcType=VARCHAR}
+    </delete>
+
+    <insert id="insertNewEssay" parameterType="com.partybuilding.webserver.dto.dynamic.essay.InsertEssayDto">
+        insert into dynamic_article_management
+        (id,title,content,organization_id,source,contributor_id,contribute_time,check_status,
+        pic_url,plugin_url,top_sort)
+        value
+        (#{id,jdbcType=VARCHAR},#{title,jdbcType=VARCHAR},#{content,jdbcType=VARCHAR},#{organizationId,jdbcType=VARCHAR},
+        #{source,jdbcType=INTEGER},#{contributorId,jdbcType=VARCHAR},#{contributeTime,jdbcType=DATE},
+        #{checkStatus,jdbcType=INTEGER}, #{picUrl,jdbcType=VARCHAR},#{pluginUrl,jdbcType=VARCHAR},1)
+    </insert>
+
+    <update id="updateEssayById" parameterType="com.partybuilding.webserver.dto.dynamic.essay.InsertEssayDto">
+        update dynamic_article_management
+        <set>
+            <if test="title !=null ">
+                title = #{title, jdbcType=VARCHAR},
+            </if>
+            <if test="content !=null ">
+                content = #{content, jdbcType=VARCHAR},
+            </if>
+            <if test="source !=null ">
+                source = #{source, jdbcType=INTEGER},
+            </if>
+            <if test="picUrl !=null ">
+                pic_url = #{picUrl, jdbcType=VARCHAR},
+            </if>
+            <if test="pluginUrl !=null ">
+                plugin_url = #{pluginUrl, jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+
+    <update id="publishEssayById" parameterType="com.partybuilding.webserver.dto.dynamic.essay.InsertEssayDto">
+        update dynamic_article_management
+        <set>
+            <if test="title !=null ">
+                title = #{title, jdbcType=VARCHAR},
+            </if>
+            <if test="content !=null ">
+                content = #{content, jdbcType=VARCHAR},
+            </if>
+            <if test="checkStatus !=null ">
+                check_Status = #{checkStatus, jdbcType=VARCHAR},
+            </if>
+            <if test="source !=null ">
+                source = #{source, jdbcType=INTEGER},
+            </if>
+            <if test="checkTime !=null ">
+                check_time = #{checkTime, jdbcType=DATE},
+            </if>
+            <if test="operatorId!=null ">
+                reviewer_id = #{operatorId, jdbcType=VARCHAR},
+            </if>
+            <if test="picUrl !=null ">
+                pic_url = #{picUrl, jdbcType=VARCHAR},
+            </if>
+            <if test="pluginUrl !=null ">
+                plugin_url = #{pluginUrl, jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+
+
+    <select id="getUpdateEssayById" parameterType="java.lang.String" resultMap="updateEssayMap">
+        select id, title, content, source, pic_url, plugin_url
+        from dynamic_article_management
+        where id= #{essayId, jdbcType=VARCHAR}
+    </select>
+
+</mapper>

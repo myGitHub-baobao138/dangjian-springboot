@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.dynamic.DynamicCultivateMapper">
+    <!--类-->
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.dto.dynamic.cultivate.CultivateEssayDto">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="title" jdbcType="VARCHAR" property="title"/>
+        <result column="content" jdbcType="VARCHAR" property="content"/>
+        <result column="name" jdbcType="VARCHAR" property="editorName"/>
+        <result column="publish_time" jdbcType="TIMESTAMP" property="publishTime"/>
+        <result column="publish_status" jdbcType="INTEGER" property="publishStatus"/>
+        <result column="outsite_url" jdbcType="VARCHAR" property="outsiteUrl"/>
+        <result column="pic_url" jdbcType="VARCHAR" property="picUrl"/>
+        <result column="plugin_url" jdbcType="VARCHAR" property="pluginUrl"/>
+        <result column="browsing_amount" jdbcType="INTEGER" property="browsingAmount"/>
+        <result column="praise_amount" jdbcType="INTEGER" property="praiseAmount"/>
+        <result column="organization_id" jdbcType="VARCHAR" property="organizationId"/>
+    </resultMap>
+
+
+    <select id="findEssayInformation" parameterType="java.lang.String" resultMap="BaseResultMap">
+         select dtm.id,title,content,publish_time,publish_status,outsite_url,pic_url,plugin_url,browsing_amount,praise_amount,spmi.name from dynamic_train_management dtm,sys_party_member_information spmi where dtm.editor_id=spmi.id and content like concat('%',#{content,jdbcType=VARCHAR},'%') and convert(publish_time,DATETIME) LIKE  concat('%',#{publishTime,jdbcType=TIMESTAMP},'%')
+</select>
+    <!--创建-->
+    <insert id="createUserAccount" parameterType="com.partybuilding.webserver.dto.dynamic.cultivate.CreateCultivateEssayInDto">
+        insert into dynamic_train_management
+        (id,title,content,editor_id,publish_time,publish_status,outsite_url,pic_url,plugin_url,organization_id)
+        value (#{id,jdbcType=VARCHAR},#{title,jdbcType=VARCHAR},#{content,jdbcType=VARCHAR },#{editorId,jdbcType=VARCHAR },#{publishTime,jdbcType=TIMESTAMP},
+        #{publishStatus,jdbcType=INTEGER },#{outsiteUrl,jdbcType=VARCHAR },#{picUrl,jdbcType=VARCHAR },#{pluginUrl,jdbcType=VARCHAR },#{organizationId,jdbcType=VARCHAR })
+    </insert>
+    <!--删除文章-->
+    <update id="deleteCultivateEssayById" parameterType="java.lang.String">
+      delete from dynamic_train_management where id = #{cultivateEssayId,jdbcType=VARCHAR}
+    </update>
+    <!--发布文章-->
+    <update id="publishEssayById" parameterType="java.lang.String">
+        update dynamic_train_management set publish_status=1 where id = #{cultivateEssayId,jdbcType=VARCHAR}
+    </update>
+    <!--修改文章-->
+    <update id="modifyEssayById" parameterType="com.partybuilding.webserver.dto.dynamic.cultivate.modifyEssayInDto">
+        update dynamic_train_management set title = #{title,jdbcType=VARCHAR},content = #{content,jdbcType=VARCHAR},editor_id=#{editorId,jdbcType=VARCHAR},publish_time=#{publishTime,jdbcType=TIMESTAMP},publish_status=#{publishStatus,jdbcType=INTEGER},outsite_url=#{outsiteUrl,jdbcType=VARCHAR },pic_url=#{picUrl,jdbcType=VARCHAR },plugin_url=#{pluginUrl,jdbcType=VARCHAR },organization_id=#{organizationId,jdbcType=VARCHAR}
+        where id=#{essayId,jdbcType=VARCHAR}
+    </update>
+
+</mapper>

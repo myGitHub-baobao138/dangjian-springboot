@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.system.SysUserMapper">
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.system.SysUser">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="account" jdbcType="VARCHAR" property="account"/>
+        <result column="password" jdbcType="VARCHAR" property="password"/>
+        <result column="sys_party_member_information_id" jdbcType="VARCHAR" property="sysPartyMemberInformationId"/>
+        <result column="is_enabled" jdbcType="BIT" property="isEnabled"/>
+    </resultMap>
+
+    <resultMap id="findPartyMemberInformationResultMap"
+               type="com.partybuilding.webserver.dto.system.userManagement.GetUserAccountInfoDTO">
+        <result column="userId" jdbcType="VARCHAR" property="userId"/>
+        <result column="information_id" jdbcType="VARCHAR" property="informationId"/>
+        <result column="account" jdbcType="VARCHAR" property="account"/>
+        <result column="password" jdbcType="VARCHAR" property="password"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="organizationName" jdbcType="VARCHAR" property="organizationName"/>
+        <result column="postName" jdbcType="VARCHAR" property="postName"/>
+        <result column="classification" jdbcType="VARCHAR" property="classification"/>
+        <result column="is_enabled" jdbcType="BIT" property="isEnable"/>
+    </resultMap>
+
+    <!--成功登录后返回信息结果集-->
+    <resultMap id="accountLoginReturnMsgResultMap"
+               type="com.partybuilding.webserver.dto.login.LoginReturnDTO">
+        <result column="userId" jdbcType="VARCHAR" property="userId"/>
+        <result column="userName" jdbcType="VARCHAR" property="userName"/>
+        <result column="account" jdbcType="VARCHAR" property="account"/>
+        <result column="password" jdbcType="VARCHAR" property="password"/>
+        <result column="state" jdbcType="TINYINT" property="state"/>
+        <result column="partyId" jdbcType="VARCHAR" property="partyId"/>
+        <collection property="organizationMsgList"
+                    ofType="com.partybuilding.webserver.dto.login.LoginReturnOrganizationMsg">
+            <result column="organizationName" jdbcType="VARCHAR" property="organizationName"/>
+            <result column="organizationId" jdbcType="VARCHAR" property="organizationId"/>
+            <result column="postName" jdbcType="VARCHAR" property="postName"/>
+            <result column="postId" jdbcType="VARCHAR" property="postId"/>
+            <result column="organizationRank" jdbcType="TINYINT" property="organizationRank"/>
+        </collection>
+    </resultMap>
+
+    <!--创建用户账号-->
+    <insert id="createUserAccount"
+            parameterType="com.partybuilding.webserver.dto.system.accountManagement.CreateUserAccountDTO">
+            insert  into sys_user (id,account,password,sys_party_member_information_id) value (#{id,jdbcType=VARCHAR },#{account,jdbcType=VARCHAR },#{password,jdbcType=VARCHAR },#{sysPartyMemberInformationId,jdbcType=VARCHAR })
+    </insert>
+
+    <!--用户登录-->
+    <select id="accountLogin" parameterType="java.lang.String" resultMap="accountLoginReturnMsgResultMap">
+        SELECT user.id AS userId,pmi.name AS userName,user.account AS account,
+        user.`password` AS `password`,user.is_enabled AS state,
+        organization.organization_id AS organizationId,organization.organization_name AS organizationName,
+        organization.rank AS organizationRank,pmi.id AS partyId,
+        (SELECT group_concat(post.id Separator ',')) AS postId,
+        (SELECT group_concat(post.name Separator ',')) AS postName
+        FROM sys_user
+        user LEFT OUTER JOIN sys_party_member_information pmi ON user.sys_party_member_information_id = pmi.id
+		LEFT OUTER JOIN sys_party_organization_post spop ON pmi.id =spop.party_id
+		LEFT OUTER JOIN sys_organizational_structure organization ON organization.organization_id = spop.organization_id
+		LEFT OUTER JOIN sys_post post ON post.id = spop.post_id
+        WHERE user.account = #{account,jdbcType=VARCHAR}
+        GROUP BY organizationId
+ </select>
+
+    <!--通过用户id 修改用户账号状态-->
+    <update id="modifyUserAccountState"
+            parameterType="com.partybuilding.webserver.dto.system.userManagement.ChangeUserAccountStateDTO">
+        update sys_user set is_enabled = #{state,jdbcType=BIT} where id = #{userId,jdbcType=VARCHAR}
+    </update>
+
+    <!--通过用户id 修改用户账号信息-->
+    <update id="modifyUserInformationByUserId"
+            parameterType="com.partybuilding.webserver.dto.system.userManagement.ModifyUserInformationDTO">
+        update sys_user set account = #{account,jdbcType=VARCHAR},password = #{password,jdbcType=VARCHAR} where id = #{userId,jdbcType=VARCHAR}
+    </update>
+
+    <!--查找用户信息sql语句-->
+    <sql id="findPartyMemberInformationSql">
+        <if test="organizationRank == 1">
+            SELECT user.id AS userId,
+            (SELECT group_concat(post.name SEPARATOR ',')) AS postName,
+            user.account,
+            user.password,
+            user.is_enabled,
+            information.id AS information_id,
+            information.name,
+            information.classification,
+            (
+            SELECT group_concat(DISTINCT organization.organization_name SEPARATOR ',')
+            )
+            AS organizationName
+            FROM sys_post post
+            RIGHT OUTER JOIN sys_party_organization_post spop ON post.id = spop.post_id
+            RIGHT OUTER JOIN sys_organizational_structure organization ON spop.organization_id =
+            organization.organization_id
+            RIGHT OUTER JOIN sys_party_member_information information ON spop.party_id = information.id
+            RIGHT OUTER JOIN sys_user user ON user.sys_party_member_information_id = information.id
+            WHERE information.name LIKE CONCAT('%',#{name},'%')
+            GROUP BY user.id
+        </if>
+        <if test="organizationRank != 1">
+            SELECT user.id AS userId,
+            (SELECT group_concat(post.name SEPARATOR ',')) AS postName,
+            user.account,
+            user.password,
+            user.is_enabled,
+            information.id AS information_id,
+            information.name,
+            information.classification,
+            (
+            SELECT group_concat(DISTINCT organization.organization_name SEPARATOR ',')
+            )
+            AS organizationName,
+            organization.organization_id
+            FROM sys_post post
+            RIGHT OUTER JOIN sys_party_organization_post spop
+            ON post.id = spop.post_id
+            RIGHT OUTER JOIN sys_organizational_structure organization
+            ON spop.organization_id = organization.organization_id
+            RIGHT OUTER JOIN sys_party_member_information information
+            ON spop.party_id = information.id
+            RIGHT OUTER JOIN sys_user user
+            ON user.sys_party_member_information_id = information.id
+            WHERE
+            information.name LIKE CONCAT('%',#{name},'%')
+            GROUP BY user.id
+            HAVING organization.organization_id = #{organizationId,jdbcType=VARCHAR}
+
+            UNION
+
+            SELECT user.id AS userId,
+            (SELECT group_concat(post.name SEPARATOR ',')) AS postName,
+            user.account,
+            user.password,
+            user.is_enabled,
+            information.id AS information_id,
+            information.name,
+            information.classification,
+            (
+            SELECT group_concat(DISTINCT organization.organization_name SEPARATOR ',')
+            )
+            AS organizationName,
+            organization.organization_id
+            FROM sys_post post
+            RIGHT OUTER JOIN sys_party_organization_post spop
+            ON post.id = spop.post_id
+            RIGHT OUTER JOIN sys_organizational_structure organization
+            ON spop.organization_id = organization.organization_id
+            RIGHT OUTER JOIN sys_party_member_information information
+            ON spop.party_id = information.id
+            RIGHT OUTER JOIN sys_user user
+            ON user.sys_party_member_information_id = information.id
+            WHERE
+            information.name LIKE CONCAT('%',#{name},'%')
+            GROUP BY user.id
+            HAVING organization.organization_id
+            IN
+            (
+            select organization.organization_id
+            FROM sys_organizational_structure organization
+            WHERE higher_organization_id = #{organizationId,jdbcType=VARCHAR}
+            )
+        </if>
+
+    </sql>
+
+    <!--模糊查询用户信息-->
+    <select id="findPartyMemberInformation"
+            parameterType="com.partybuilding.webserver.dto.system.userManagement.GetUserAccountInfoPageDTO"
+            resultMap="findPartyMemberInformationResultMap">
+        <include refid="findPartyMemberInformationSql"></include>
+    </select>
+
+    <!--判断账号是否存在-->
+    <select id="isAccountExist" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select * from sys_user where account = #{account,jdbcType=VARCHAR}
+    </select>
+
+    <!--通过用户id 删除用户信息-->
+    <update id="deleteUserInfoByUserId" parameterType="java.lang.String">
+      delete from sys_user where id = #{userId,jdbcType=VARCHAR}
+    </update>
+</mapper>

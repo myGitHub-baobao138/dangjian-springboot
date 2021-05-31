@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceExaminationManagementMapper">
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceExaminationManagement">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="title" jdbcType="VARCHAR" property="title"/>
+        <result column="begin_time" jdbcType="TIMESTAMP" property="beginTime"/>
+        <result column="end_time" jdbcType="TIMESTAMP" property="endTime"/>
+        <result column="release_time" jdbcType="TIMESTAMP" property="releaseTime"/>
+        <result column="question_category_id" jdbcType="VARCHAR" property="questionCategoryId"/>
+        <result column="founder_id" jdbcType="VARCHAR" property="founderId"/>
+        <result column="state" jdbcType="INTEGER" property="state"/>
+        <result column="founder_organization_id" jdbcType="VARCHAR" property="founderOrganizationId"/>
+    </resultMap>
+
+    <resultMap id="ExamineMap" type="com.partybuilding.webserver.dto.service.question.ExamineListDTO">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="title" jdbcType="VARCHAR" property="title"/>
+        <result column="beginTime" jdbcType="VARCHAR" property="beginTime"/>
+        <result column="endTime" jdbcType="VARCHAR" property="endTime"/>
+        <result column="equestion_category_id" jdbcType="VARCHAR" property="questionCategoryId"/>
+        <result column="founder" jdbcType="VARCHAR" property="founder"/>
+        <result column="estate" jdbcType="INTEGER" property="state"/>
+        <result column="categoryName" jdbcType="VARCHAR" property="categoryName"/>
+        <collection property="questions" javaType="List"
+                    ofType="com.partybuilding.webserver.entity.service.ServiceQuestion"
+                    autoMapping="true">
+            <id column="qid" jdbcType="VARCHAR" property="id"/>
+            <result column="qtitle" jdbcType="VARCHAR" property="title"/>
+            <result column="qquestion" jdbcType="VARCHAR" property="question"/>
+            <result column="questionType" jdbcType="VARCHAR" property="questionType"/>
+            <result column="answerDescription" jdbcType="VARCHAR" property="answerDescription"/>
+            <result column="correctAnswer" jdbcType="VARCHAR" property="correctAnswer"/>
+        </collection>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+    id, title, begin_time, end_time, release_time, question_category_id, founder_id, state,founder_organization_id
+  </sql>
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from service_examination_management
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <select id="selectAllExamineQuestion"
+            resultType="com.partybuilding.webserver.entity.service.ServiceExaminationManagement">
+        select id,DATE_FORMAT(begin_time,'%Y-%m-%d') as start,
+      DATE_FORMAT(end_time,'%Y-%m-%d') as end,state,begin_time as beginTime,end_time as endTime
+      from service_examination_management
+    </select>
+
+    <update id="updateState" >
+        update service_examination_management
+    set
+      state = #{state1}
+    where id = #{examineId,jdbcType=VARCHAR}
+    </update>
+
+    <select id="getExamineQuestionById" parameterType="java.lang.String" resultMap="ExamineMap">
+    select ex.title as title,ex.question_category_id as equestion_category_id,ex.state as estate, ex.id as id,qc.category_name as categoryName, pt.name as founder,
+    DATE_FORMAT(ex.begin_time,'%Y-%m-%d') as beginTime,
+      DATE_FORMAT(ex.end_time,'%Y-%m-%d') as endTime,sq.id as qid,sq.title as qtitle,sq.question as qquestion,sq.question_type as questionType,
+      sq.answer_description as answerDescription,sq.correct_answer as correctAnswer
+    from service_examination_management ex left join service_question_category qc on ex.question_category_id = qc.id
+    left join sys_party_member_information pt on pt.id = ex.founder_id
+    left join service_examination_question seq on seq.examination_id = ex.id
+    left join  service_question sq on seq.question_id  = sq.id
+    where ex.id = #{id,jdbcType=VARCHAR}
+    order by ex.begin_time desc
+  </select>
+
+    <!-- 根据考题id获取卷子 -->
+    <select id="getQuestionListByExamineId" parameterType="java.lang.String"
+            resultType="com.partybuilding.webserver.entity.service.ServiceQuestion">
+               select sq.id as id,sq.title as title,sq.question as
+        question,sq.question_type as questionType,
+        sq.answer_description as answerDescription,sq.correct_answer as correctAnswer
+               from service_examination_question seq
+        left join service_question sq on seq.question_id = sq.id
+        where seq.examination_id = #{examineId,jdbcType=VARCHAR}
+    </select>
+
+
+    <!-- 按条件获取考题列表-->
+    <select id="getExamineQuestionQueryList"
+            parameterType="com.partybuilding.webserver.dto.service.question.QueryExamineInputDTO"
+            resultMap="ExamineMap">
+        select ex.title as title,ex.question_category_id as equestion_category_id,ex.state as estate, ex.id as
+        id,qc.category_name as categoryName, pt.name as founder,
+        DATE_FORMAT(ex.begin_time,'%Y/%m/%d') as beginTime,
+        DATE_FORMAT(ex.end_time,'%Y/%m/%d') as endTime
+        from service_examination_management ex left join service_question_category qc on ex.question_category_id = qc.id
+        left join sys_party_member_information pt on pt.id = ex.founder_id
+        <where>
+            <if test="(title != null and title != '')">
+                and ex.title like concat('%',concat(#{title,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="(questionCategory != null and questionCategory != '')">
+                and ex.question_category_id = #{questionCategory,jdbcType=VARCHAR}
+            </if>
+            <if test="(state != null and state != '')">
+                and ex.state = #{state,jdbcType=INTEGER}
+            </if>
+        </where>
+        order by ex.begin_time desc
+    </select>
+
+
+    <!-- 获取考题的题目数 -->
+    <select id="getQuestionsNumber" parameterType="java.lang.String" resultType="java.lang.Integer">
+    select count(*)
+    from service_examination_question
+    where examination_id = #{examineId,jdbcType=VARCHAR}
+  </select>
+
+    <!-- 获取考题的答题人数 -->
+    <select id="getRespondentNumber" parameterType="java.lang.String" resultType="java.lang.Integer">
+    select count(*)
+    from service_answer_record
+    where examination_id = #{examineId,jdbcType=VARCHAR}
+  </select>
+
+    <!--根据分类名称获取分类id-->
+    <select id="getQuestionCategoryId" parameterType="java.lang.String" resultType="java.lang.String">
+    select
+    id
+    from service_question_category
+    where category_name = #{questionCategory,jdbcType=VARCHAR}
+  </select>
+
+
+    <!--添加考题-->
+    <insert id="addExamine" parameterType="com.partybuilding.webserver.dto.service.question.ExamineManageDTO">
+        insert into service_examination_management (id, title, begin_time,
+        end_time, release_time, question_category_id, founder_id,state,founder_organization_id
+        )
+        <if test="releaseTime != null">
+            select #{id,jdbcType=VARCHAR}, #{title,jdbcType=VARCHAR}, #{beginTime,jdbcType=VARCHAR},
+            #{endTime,jdbcType=VARCHAR}, #{releaseTime,jdbcType=VARCHAR},
+            #{questionCategoryId,jdbcType=VARCHAR},#{founderId,jdbcType=VARCHAR},2,
+            #{founderOrganizationId, jdbcType=VARCHAR}
+            from dual
+            where not exists
+            (select * from service_examination_management where title = #{title,jdbcType=VARCHAR} )
+        </if>
+        <if test="releaseTime == null">
+            select #{id,jdbcType=VARCHAR}, #{title,jdbcType=VARCHAR}, #{beginTime,jdbcType=VARCHAR},
+            #{endTime,jdbcType=VARCHAR}, #{releaseTime,jdbcType=VARCHAR},
+            #{questionCategoryId,jdbcType=VARCHAR},#{founderId,jdbcType=VARCHAR},1,
+            #{founderOrganizationId, jdbcType=VARCHAR}
+            from dual
+            where not exists
+            (select * from service_examination_management where title = #{title,jdbcType=VARCHAR} )
+        </if>
+
+
+    </insert>
+
+    <!--添加考题-->
+    <update id="updateExamine" parameterType="com.partybuilding.webserver.dto.service.question.ExamineManageDTO">
+        update service_examination_management
+        <set>
+            <if test="title != null">
+                title = #{title,jdbcType=VARCHAR},
+            </if>
+            <if test="beginTime != null">
+                begin_time = #{beginTime,jdbcType=VARCHAR},
+            </if>
+            <if test="endTime != null">
+                end_time = #{endTime,jdbcType=VARCHAR},
+            </if>
+            <if test="releaseTime != null">
+                state = 2,
+                release_time = #{releaseTime,jdbcType=VARCHAR},
+            </if>
+            <if test="releaseTime == null">
+                state = 1,
+            </if>
+            <if test="questionCategoryId != null">
+                question_category_id = #{questionCategoryId,jdbcType=VARCHAR},
+            </if>
+            <if test="founderOrganizationId != null">
+                founder_organization_id = #{founderOrganizationId, jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+        and not exists (select 1 from
+        (select 1 from service_examination_management where title = #{title,jdbcType=VARCHAR} and id !=
+        #{id,jdbcType=VARCHAR}) a)
+    </update>
+
+
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.partybuilding.webserver.dto.service.question.ExamineManageDTO">
+        update service_examination_management
+        <set>
+            <if test="title != null">
+                title = #{title,jdbcType=VARCHAR},
+            </if>
+            <if test="beginTime != null">
+                begin_time = #{beginTime,jdbcType=VARCHAR},
+            </if>
+            <if test="endTime != null">
+                end_time = #{endTime,jdbcType=VARCHAR},
+            </if>
+            <if test="releaseTime != null">
+                release_time = #{releaseTime,jdbcType=VARCHAR},
+            </if>
+            <if test="questionCategoryId != null">
+                question_category_id = #{questionCategoryId,jdbcType=VARCHAR},
+            </if>
+            <if test="founderOrganizationId != null">
+                founder_organization_id = #{founderOrganizationId, jdbcType=VARCHAR},
+            </if>
+
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+
+
+    <!--发布考题-->
+    <update id="releaseExamine" parameterType="java.lang.String">
+    update service_examination_management
+    set
+      release_time = #{releaseTime,jdbcType=VARCHAR},
+      state = 2
+    where id = #{examineId,jdbcType=VARCHAR}
+  </update>
+
+    <update id="earlyTermination">
+    update service_examination_management
+    set
+    end_time = #{endTime,jdbcType=TIMESTAMP},state = 4,
+    begin_time = #{endTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+
+    <!-- 删除考题问题记录 -->
+    <delete id="deleteQuestionIdByExamineId" parameterType="java.lang.String">
+        delete from service_examination_question
+        where examination_id = #{id,jdbcType=VARCHAR}
+    </delete>
+
+
+    <!-- 删除考题 -->
+    <delete id="deleteExamineById" parameterType="java.lang.String">
+    delete from service_examination_management
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+</mapper>

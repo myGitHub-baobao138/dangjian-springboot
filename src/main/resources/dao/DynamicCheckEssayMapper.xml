@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.dynamic.DynamicCheckEssayMapper">
+
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.dto.dynamic.essay.EssayDto">
+    <id column="id" jdbcType="VARCHAR" property="id"/>
+    <result column="academy" jdbcType="VARCHAR" property="academyName"/>
+    <result column="title" jdbcType="VARCHAR" property="title"/>
+    <result column="content" jdbcType="VARCHAR" property="content"/>
+    <result column="source" jdbcType="INTEGER" property="source"/>
+    <result column="contributor" jdbcType="VARCHAR" property="contributor"/>
+    <result column="contributeTime" jdbcType="DATE" property="contributeTime"/>
+    <result column="check_status" jdbcType="INTEGER" property="checkStatus"/>
+    <result column="reviewer" jdbcType="VARCHAR" property="reviewer"/>
+    <result column="checkTime" jdbcType="DATE" property="checkTime"/>
+  </resultMap>
+
+  <resultMap id="essayDetailsMap" type="com.partybuilding.webserver.dto.dynamic.essay.EssayDetailsDto">
+    <id column="id" jdbcType="VARCHAR" property="id"/>
+    <result column="title" jdbcType="VARCHAR" property="title"/>
+    <result column="content" jdbcType="VARCHAR" property="content"/>
+    <result column="source" jdbcType="INTEGER" property="source"/>
+    <result column="contributor" jdbcType="VARCHAR" property="contributor"/>
+    <result column="position" jdbcType="VARCHAR" property="position" />
+    <result column="contributeTime" jdbcType="DATE" property="contributeTime"/>
+    <result column="check_status" jdbcType="INTEGER" property="checkStatus"/>
+    <result column="picUrl" jdbcType="VARCHAR" property="picUrl"/>
+    <result column="pluginUrl" jdbcType="VARCHAR" property="pluginUrl"/>
+  </resultMap>
+
+  <!-- 显示稿件审核列表信息 -  all from dynamic_article_management table-->
+  <sql id="Base_Column_List">
+    dyarticles.id, title, content, source, contribute_time as contributeTime, check_status, check_time as checkTime
+  </sql>
+
+  <!-- 查看稿件审核详情 -  all from dynamic_article_management table-->
+  <sql id="essay_details_list">
+    dyarticles.id, source, title, content, dyarticles.check_status, contribute_time as contributeTime, pic_url as picUrl,plugin_url as pluginUrl
+  </sql>
+
+  <!--OK根据管理员等级（organizationRank）和组织id 去获取相应学院的待审核文章-->
+  <select id="getCheckEssayListByRankAndOrganization"  resultMap="BaseResultMap">
+    select <include refid="Base_Column_List" />
+    ,sos.organization_name as academy, inf.name as contributor,  inf1.name as reviewer
+    from dynamic_article_management as dyarticles
+
+    <!-- 获取学校名称-->
+    LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+    <!-- 获取投稿人姓名-->
+    LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+    <!-- 获取审核人姓名-->
+    LEFT JOIN sys_party_member_information as inf1 on inf1.id =  dyarticles.reviewer_id
+    where (check_status = -1 or check_status =0)
+    <if test="organizationRank == 2">
+      and ( dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR}
+        or dyarticles.organization_id in(
+            select sos1.organization_id from sys_organizational_structure as sos1
+            where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+  </select>
+
+  <!--OK查询 输入内容 标题/内容/投稿人/审核人/  进行模糊查询 -->
+  <select id="queryCheckEssayListByInputContent"  resultMap="BaseResultMap">
+    select <include refid="Base_Column_List" />
+    ,sos.organization_name as academy, inf.name as contributor,  inf1.name as reviewer
+    from dynamic_article_management as dyarticles
+    <!-- 获取学校名称-->
+    LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+    <!-- 获取投稿人姓名-->
+    LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+    <!-- 获取审核人姓名-->
+    LEFT JOIN sys_party_member_information as inf1 on inf1.id =  dyarticles.reviewer_id
+    where (check_status = -1 or check_status =0)
+    and (dyarticles.title like #{inputContent, jdbcType=VARCHAR}
+      or dyarticles.content like #{inputContent, jdbcType=VARCHAR}
+      or inf.name like #{inputContent, jdbcType=VARCHAR}
+      or inf1.name like #{inputContent, jdbcType=VARCHAR}
+      or sos.organization_name like  #{inputContent, jdbcType=VARCHAR})
+    <if test="organizationRank == 2">
+      and ( dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR}
+      or dyarticles.organization_id in(
+        select sos1.organization_id from sys_organizational_structure as sos1
+        where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+  </select>
+
+  <!--OK查询 输入内容 根据稿件来源  进行查询 -->
+  <select id="queryCheckEssayListBySource" resultMap="BaseResultMap">
+    select <include refid="Base_Column_List" />
+    ,sos.organization_name as academy, inf.name as contributor,  inf1.name as reviewer
+    from dynamic_article_management as dyarticles
+
+    <!-- 获取学校名称-->
+    LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+    <!-- 获取投稿人姓名-->
+    LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+    <!-- 获取审核人姓名-->
+    LEFT JOIN sys_party_member_information as inf1 on inf1.id =  dyarticles.reviewer_id
+
+    where  dyarticles.source= #{source, jdbcType=INTEGER}
+    and (check_status = -1 or check_status =0)
+    <if test="organizationRank == 2">
+      and ( dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR}
+      or dyarticles.organization_id in(
+      select sos1.organization_id from sys_organizational_structure as sos1
+      where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+  </select>
+
+  <!--OK查询 审核状态 根据审核状态 进行查询 -->
+  <select id="queryCheckEssayListByCheckStatus" resultMap="BaseResultMap">
+    select <include refid="Base_Column_List" />
+    ,sos.organization_name as academy, inf.name as contributor,  inf1.name as reviewer
+    from dynamic_article_management as dyarticles
+
+    <!-- 获取学校名称-->
+    LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+    <!-- 获取投稿人姓名-->
+    LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+    <!-- 获取审核人姓名-->
+    LEFT JOIN sys_party_member_information as inf1 on inf1.id =  dyarticles.reviewer_id
+
+    where dyarticles.check_status= #{checkStatus, jdbcType=INTEGER}
+    <if test="organizationRank == 2">
+      and ( dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR}
+      or dyarticles.organization_id in(
+      select sos1.organization_id from sys_organizational_structure as sos1
+      where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+
+  </select>
+
+  <!--OK查询 输入内容和审核状态 根据审核状态和输入内容 同时进行查询 -->
+  <select id="queryCheckEssayListByCheckStatusAndInputContent" resultMap="BaseResultMap">
+    select <include refid="Base_Column_List" />
+    ,sos.organization_name as academy, inf.name as contributor,  inf1.name as reviewer
+    from dynamic_article_management as dyarticles
+
+    <!-- 获取学校名称-->
+    LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+    <!-- 获取投稿人姓名-->
+    LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+    <!-- 获取审核人姓名-->
+    LEFT JOIN sys_party_member_information as inf1 on inf1.id =  dyarticles.reviewer_id
+
+    where check_status = #{checkStatus, jdbcType=INTEGER}
+    and (dyarticles.title like #{inputContent, jdbcType=VARCHAR}
+      or dyarticles.content like #{inputContent, jdbcType=VARCHAR}
+      or inf.name like #{inputContent, jdbcType=VARCHAR}
+      or inf1.name like #{inputContent, jdbcType=VARCHAR}
+      or sos.organization_name like  #{inputContent, jdbcType=VARCHAR})
+    <if test="organizationRank == 2">
+      and ( dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR}
+      or dyarticles.organization_id in(
+        select sos1.organization_id from sys_organizational_structure as sos1
+        where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+  </select>
+
+  <!--OK查询 输入内容和审核状态 根据审核状态和稿件来源 同时进行查询 -->
+  <select id="queryCheckEssayListByCheckStatusAndSource" resultMap="BaseResultMap">
+    select <include refid="Base_Column_List" />
+    ,sos.organization_name as academy, inf.name as contributor,  inf1.name as reviewer
+    from dynamic_article_management as dyarticles
+
+    <!-- 获取学校名称-->
+    LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+    <!-- 获取投稿人姓名-->
+    LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+    <!-- 获取审核人姓名-->
+    LEFT JOIN sys_party_member_information as inf1 on inf1.id =  dyarticles.reviewer_id
+
+    where  dyarticles.source = #{source, jdbcType=VARCHAR}
+    and check_status = #{checkStatus, jdbcType=INTEGER}
+    <if test="organizationRank == 2">
+      and ( dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR}
+      or dyarticles.organization_id in(
+        select sos1.organization_id from sys_organizational_structure as sos1
+        where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+  </select>
+
+  <!--OK查看稿件详情信息end-->
+  <select id="getEssayDetails" parameterType="java.lang.String" resultMap="essayDetailsMap">
+    select<include refid="essay_details_list" />
+    ,inf.name as contributor, sys_post.name as position
+
+    from dynamic_article_management as dyarticles
+    LEFT JOIN sys_party_member_information as inf on inf.id =  dyarticles.contributor_id
+    LEFT JOIN sys_party_organization_post as spop on spop.party_id = dyarticles.contributor_id
+    LEFT JOIN sys_post on sys_post.id = spop.post_id
+    where dyarticles.id = #{essayId, jdbcType=VARCHAR}
+  </select>
+
+  <!--OK审核稿件通过单个稿件id 需要更改 审核人，审核时间， 审核状态，审核说明  -->
+  <update id="updateEssayBySingleEssayId">
+    update dynamic_article_management
+    <set>
+      <if test="checkStatus != null">
+        check_status = #{checkStatus,jdbcType=INTEGER},
+      </if>
+      <if test="checkTime != null">
+        check_time = #{checkTime,jdbcType=DATE},
+      </if>
+      <if test="reviewerId!= null">
+        reviewer_id = #{reviewerId,jdbcType=VARCHAR},
+      </if>
+      <if test="checkDiscription != null">
+        check_discription = #{checkDiscription,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{essayId,jdbcType=VARCHAR}
+  </update>
+
+  <!--批量审核文章 需要更改 审核人，审核时间， 审核状态，审核说明 ing -->
+  <update id="updateManyEssayByEssayIdList" parameterType="com.partybuilding.webserver.dto.dynamic.essay.CheckFormDto">
+    update dynamic_article_management as articles
+    <set>
+      <if test="checkStatus != null">
+        articles.check_status = #{checkStatus,jdbcType=BIGINT},
+      </if>
+      <if test="checkTime != null">
+        articles.check_time = #{checkTime,jdbcType=DATE},
+      </if>
+      <if test="checkerId!= null">
+        articles.reviewer_id = #{checkerId,jdbcType=VARCHAR},
+      </if>
+      <if test="details != null">
+        articles.check_discription = #{details,jdbcType=VARCHAR}
+      </if>
+    </set>
+    where articles.id in
+    <foreach collection="checkedIdList" item="essayId" index="index" open="("  separator="," close=")">
+      #{essayId,jdbcType=VARCHAR}
+    </foreach>
+  </update>
+
+</mapper>

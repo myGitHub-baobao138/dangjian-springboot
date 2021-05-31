@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.system.SysPartyOrganizationPostMapper">
+
+    <resultMap id="BaseResult" type="com.partybuilding.webserver.entity.system.SysPartyOrganizationPost">
+        <id column="id" jdbcType="VARCHAR" property="id"></id>
+        <result   column="party_id" property="partyId" jdbcType="VARCHAR"></result>
+        <result column="organization_id" jdbcType="VARCHAR" property="organizationId"></result>
+        <result column="post_id" property="postId" jdbcType="VARCHAR"></result>
+    </resultMap>
+
+    <insert id="addPartyOrgPost" parameterType="com.partybuilding.webserver.dto.system.sysPartyOrganizationPost.InsertPartyOrganizationPost">
+        insert into sys_party_organization_post (id,party_id,organization_id,post_id) values
+        <foreach collection="parties" item="organization" separator=",">
+            (#{organization.id,jdbcType=VARCHAR},#{organization.partyId,jdbcType=VARCHAR},
+            #{organization.organizationName,jdbcType=VARCHAR},#{organization.postName,jdbcType=VARCHAR})
+        </foreach>
+
+    </insert>
+    <insert id="addPartyOrgPostSingle" parameterType="com.partybuilding.webserver.dto.system.sysPartyOrganizationPost.InsertPartyOrganizationPost">
+        insert into sys_party_organization_post (id,party_id,organization_id,post_id) values
+        (#{id,jdbcType=VARCHAR},#{partyId,jdbcType=VARCHAR},
+            #{organizationName,jdbcType=VARCHAR},#{postName,jdbcType=VARCHAR})
+    </insert>
+
+    <update id="updateOrgByKey" parameterType="com.partybuilding.webserver.dto.system.sysPartyOrganizationPost.InsertPartyOrganizationPost">
+        update sys_party_organization_post
+        set party_id = #{partyId,jdbcType=VARCHAR},
+        organization_id = #{organiozationName,jdbcType=VARCHAR},
+        post_id = #{postName,jdbcType=VARCHAR}
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+    <update id="updateInfo" parameterType="com.partybuilding.webserver.dto.system.sysPartyOrganizationPost.UpdatePartyOrgPostDto">
+        update sys_party_organization_post
+        set party_id = #{partyId,jdbcType=VARCHAR},
+        organization_id = #{organizationId,jdbcType=VARCHAR},
+        post_id = #{postId,jdbcType=VARCHAR}
+        where id = #{partyOrgPOstId,jdbcType=VARCHAR}
+    </update>
+    <select id="getOrgAngPost" parameterType="java.lang.String" resultType="com.partybuilding.webserver.dto.system.sysPartyOrganizationPost.InsertPartyOrganizationPost">
+        select id,party_id,organization_id,post_id from sys_party_organization_post where party_id=#{partyId,jdbcType=VARCHAR} and
+        post_id = #{postId,jdbcType=VARCHAR} AND organization_id = #{organizationId,jdbcType=VARCHAR}
+    </select>
+</mapper>

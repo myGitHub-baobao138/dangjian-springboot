@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.system.SysRightMapper">
+
+    <!--查询权限基本信息结果图-->
+    <resultMap id="findRightBaseInfoResultMap" type="com.partybuilding.webserver.dto.system.right.FindRightBaseInfoDTO">
+        <result column="organization_id" jdbcType="VARCHAR" property="organizationId"/>
+        <result column="organization_name" jdbcType="VARCHAR" property="getOrganizationName"/>
+        <result column="post_id" jdbcType="VARCHAR" property="postId"/>
+        <result column="post_name" jdbcType="VARCHAR" property="postName"/>
+        <result column="create_party_name" jdbcType="VARCHAR" property="createPartyName"/>
+        <result column="right_columns" jdbcType="VARCHAR" property="rightColumns"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    </resultMap>
+
+    <resultMap id="findUserRightMap" type="com.partybuilding.webserver.dto.role.RouterRoleDTO">
+        <id column="role" property="role" jdbcType="VARCHAR" javaType="java.lang.String"/>
+        <result column="router" property="router" jdbcType="VARCHAR" javaType="java.lang.String"/>
+    </resultMap>
+    <!--加载用户权限-->
+    <select id="findUserRight" parameterType="com.partybuilding.webserver.dto.role.UserRoleDTO"
+            resultMap="findUserRightMap">
+        SELECT concat(group_concat(rc.resource_column_url,rp.resource_plate_url),"/**") AS router,
+        concat(role.organization_id,role.post_id) AS role
+        FROM sys_resource_column rc,
+        sys_resource_plate rp,
+        sys_role_resource srr,
+        sys_role role
+        WHERE role.organization_id = #{organizationId,jdbcType=VARCHAR}
+	    AND role.post_id = #{postId,jdbcType=VARCHAR}
+	    AND role.role_id = srr.role_id
+        AND rc.resource_column_id = srr.column_id
+        AND rp.resource_plate_id = srr.plate_id
+        AND rp.resource_column_id = rc.resource_column_id
+	    GROUP BY srr.role_resource_id
+        ORDER  BY rc.resource_column_id,rp.resource_plate_id
+    </select>
+
+    <!--查询权限基本信息-->
+    <select id="findRightBaseInfo"
+            parameterType="com.partybuilding.webserver.dto.system.right.FindRightBaseInfoPageInfo"
+            resultMap="findRightBaseInfoResultMap">
+        <if test="organizationRank==1">
+            SELECT role.organization_id,role.organization_name,role.post_id,role.post_name,
+            ifnull(spmi.name,'系统管理员') AS create_party_name,(group_concat(DISTINCT src.resource_column_name Separator '
+            ')) AS right_columns,role.create_time
+            FROM sys_organizational_structure os,sys_role role LEFT JOIN sys_party_member_information spmi ON spmi.id =
+            role.party_id
+            LEFT JOIN sys_role_resource srr ON srr.role_id = role.role_id
+            LEFT JOIN sys_resource_column src ON srr.column_id = src.resource_column_id
+            WHERE role.organization_name LIKE CONCAT('%',#{organizationName,jdbcType=VARCHAR},'%')
+            AND role.post_name LIKE CONCAT('%',#{postName,jdbcType=VARCHAR},'%')
+            AND os.organization_id = role.organization_id
+            AND os.rank &gt;= #{organizationRank,jdbcType=VARCHAR}
+            AND os.rank &lt;= (#{organizationRank,jdbcType=VARCHAR}+2)
+            GROUP BY role.organization_id,role.post_id
+        </if>
+        <if test="organizationRank==2">
+            SELECT role.organization_id,role.organization_name,role.post_id,role.post_name,
+            ifnull(spmi.name,'系统管理员') AS create_party_name,(group_concat(DISTINCT src.resource_column_name Separator '
+            ')) AS right_columns,role.create_time
+            FROM sys_organizational_structure os,sys_role role LEFT JOIN sys_party_member_information spmi ON spmi.id =
+            role.party_id
+            LEFT JOIN sys_role_resource srr ON srr.role_id = role.role_id
+            LEFT JOIN sys_resource_column src ON srr.column_id = src.resource_column_id
+            WHERE role.organization_name LIKE CONCAT('%',#{organizationName,jdbcType=VARCHAR},'%')
+            AND role.post_name LIKE CONCAT('%',#{postName,jdbcType=VARCHAR},'%')
+            AND os.organization_id = role.organization_id
+            AND os.rank &gt;= #{organizationRank,jdbcType=VARCHAR}
+            AND os.rank &lt;= (#{organizationRank,jdbcType=VARCHAR}+1)
+            GROUP BY role.organization_id,role.post_id
+        </if>
+        <if test="organizationRank==3">
+            SELECT role.organization_id,role.organization_name,role.post_id,role.post_name,
+            ifnull(spmi.name,'系统管理员') AS create_party_name,(group_concat(DISTINCT src.resource_column_name Separator '
+            ')) AS right_columns,role.create_time
+            FROM sys_organizational_structure os,sys_role role LEFT JOIN sys_party_member_information spmi ON spmi.id =
+            role.party_id
+            LEFT JOIN sys_role_resource srr ON srr.role_id = role.role_id
+            LEFT JOIN sys_resource_column src ON srr.column_id = src.resource_column_id
+            WHERE role.organization_name LIKE CONCAT('%',#{organizationName,jdbcType=VARCHAR},'%')
+            AND role.post_name LIKE CONCAT('%',#{postName,jdbcType=VARCHAR},'%')
+            AND os.organization_id = role.organization_id
+            AND os.rank = #{organizationRank,jdbcType=VARCHAR}
+            GROUP BY role.organization_id,role.post_id
+        </if>
+    </select>
+
+    <!--删除权限角色及其权限资源-->
+    <update id="deleteRightRoleAndResource"
+            parameterType="com.partybuilding.webserver.dto.system.right.DeleteRightRoleAndResourceDTO">
+        delete srr.* from sys_role role,sys_role_resource srr where
+        role.organization_id = #{organizationId,jdbcType=VARCHAR}
+        and role.post_id = #{postId,jdbcType=VARCHAR} and srr.role_id = role.role_id;
+        delete role.* from sys_role role where
+        role.organization_id = #{organizationId,jdbcType=VARCHAR}
+        and role.post_id = #{postId,jdbcType=VARCHAR}
+    </update>
+
+    <!--查询权限列表Map-->
+    <resultMap id="findRightListResultMap" type="com.partybuilding.webserver.dto.system.right.showRight.ResourceColumn">
+        <id column="resource_column_id" jdbcType="VARCHAR" property="id"/>
+        <result column="resource_column_name" jdbcType="VARCHAR" property="rightName"/>
+        <collection property="children"
+                    ofType="com.partybuilding.webserver.dto.system.right.showRight.ResourcePlate">
+            <id column="resource_plate_id" jdbcType="VARCHAR" property="id"/>
+            <result column="resource_plate_name" jdbcType="VARCHAR" property="rightName"/>
+            <result column="has_permission" jdbcType="CHAR" property="hasPermission"/>
+        </collection>
+    </resultMap>
+
+    <!--查询角色权限-->
+    <select id="findRightList"
+            parameterType="com.partybuilding.webserver.dto.system.right.createRight.FindOrganizationAndPostIsExist"
+            resultMap="findRightListResultMap">
+        (
+        SELECT rc.resource_column_id,rc.resource_column_name,rp.resource_plate_id,rp.resource_plate_name,1 AS has_permission
+        FROM sys_resource_column rc,sys_role_resource srr,sys_resource_plate rp
+        WHERE srr.role_id =
+            (
+            SELECT role.role_id
+            FROM sys_role role
+            WHERE role.organization_id = #{organizationId,jdbcType=VARCHAR}
+            AND role.post_id = #{postId,jdbcType=VARCHAR}
+            )
+        AND rc.resource_column_id = srr.column_id
+		AND rp.resource_plate_id = srr.plate_id
+        AND rp.resource_column_id = rc.resource_column_id
+        ORDER BY rc.resource_column_id,rp.resource_plate_id)
+		UNION ALL
+        (
+        SELECT rc.resource_column_id,rc.resource_column_name,rp.resource_plate_id,
+        rp.resource_plate_name,0 AS has_permission
+        FROM sys_resource_column rc,sys_resource_plate rp
+	    WHERE rp.resource_column_id = rc.resource_column_id
+	    AND rp.resource_plate_id NOT IN
+            (
+            SELECT rp.resource_plate_id
+            FROM sys_resource_column rc,sys_role_resource srr,sys_resource_plate rp
+            WHERE srr.role_id =
+                (
+                SELECT role.role_id  FROM sys_role role
+                WHERE role.organization_id = #{organizationId,jdbcType=VARCHAR}
+                AND role.post_id = #{postId,jdbcType=VARCHAR}
+                )
+            AND rc.resource_column_id = srr.column_id
+            AND rp.resource_plate_id = srr.plate_id
+            AND rp.resource_column_id = rc.resource_column_id
+            ORDER BY rc.resource_column_id,rp.resource_plate_id
+            )
+        ORDER BY rc.resource_column_id,rp.resource_plate_id
+        )
+    </select>
+
+    <!--添加角色-->
+    <insert id="addRole" parameterType="com.partybuilding.webserver.dto.system.right.createRight.CreateRightRequest">
+        insert into sys_role (role_id,organization_id,organization_name,post_id,post_name,party_id,create_time)
+        values (#{roleId,jdbcType=VARCHAR},#{organizationId,jdbcType=VARCHAR},(select sos.organization_name
+        from sys_organizational_structure sos where sos.organization_id = #{organizationId,jdbcType=VARCHAR})
+        ,#{postId,jdbcType=VARCHAR},(select post.name from sys_post post
+        where post.id = #{postId,jdbcType=VARCHAR}),#{partyId,jdbcType=VARCHAR},#{createTime,jdbcType=TIMESTAMP});
+    </insert>
+
+    <!--删除角色以前的权限-->
+    <delete id="deleteRoleRight"
+            parameterType="com.partybuilding.webserver.dto.system.right.allocateRight.AllocateRightRequest">
+        DELETE FROM sys_role_resource
+        WHERE role_id = #{roleId,jdbcType=VARCHAR}
+    </delete>
+    <!--添加角色权限-->
+    <insert id="allocateRoleRight"
+            parameterType="com.partybuilding.webserver.dto.system.right.allocateRight.AllocateRightRequest">
+        <!--新增权限-->
+        INSERT INTO sys_role_resource (role_resource_id,role_id,column_id,plate_id)
+        VALUES
+        <foreach collection="rightsDTOList" item="right" index="index" separator=",">
+            (
+            #{right.id,jdbcType=VARCHAR},
+            #{roleId,jdbcType=VARCHAR},
+            #{right.columnId,jdbcType=VARCHAR},
+            #{right.plateId,jdbcType=VARCHAR}
+            )
+        </foreach>
+    </insert>
+
+    <!--创建权限的时候，选择组织职务下拉框Map-->
+    <resultMap id="organizationAndPostMap"
+               type="com.partybuilding.webserver.dto.system.right.createRight.OrganizationAndPostDTO">
+        <id column="organization_id" jdbcType="VARCHAR" property="organizationId"/>
+        <result column="organization_name" jdbcType="VARCHAR" property="organizationName"/>
+        <collection property="posts" ofType="com.partybuilding.webserver.dto.system.right.createRight.PostDTO">
+            <id column="post_id" jdbcType="VARCHAR" property="postId"/>
+            <result column="post_name" jdbcType="VARCHAR" property="postName"/>
+        </collection>
+    </resultMap>
+
+
+    <!--创建权限的时候，选择组织职务下拉框-->
+    <select id="organizationAndPost"
+            parameterType="com.partybuilding.webserver.dto.system.right.createRight.OrganizationAndPostRequestDTO"
+            resultMap="organizationAndPostMap">
+	    SELECT sos.organization_id,sos.organization_name,post.id AS post_id,post.name AS post_name
+        FROM sys_organizational_structure sos,sys_post post
+        WHERE sos.organization_name LIKE CONCAT('%',#{organizationName,jdbcType=VARCHAR},'%')
+        AND post.name LIKE CONCAT('%',#{postName,jdbcType=VARCHAR},'%')
+	    AND CONCAT(sos.organization_id,post.id)
+	    NOT IN
+	    (
+	        SELECT CONCAT(sr.organization_id,sr.post_id)
+	        FROM sys_role sr
+	    )
+	    ORDER BY sos.organization_id
+    </select>
+
+    <select id="findRoleId"
+            parameterType="com.partybuilding.webserver.dto.system.right.createRight.FindOrganizationAndPostIsExist"
+            resultType="java.lang.String">
+        select role.role_id from sys_role role
+            where role.organization_id = #{organizationId,jdbcType=VARCHAR}
+            and role.post_id = #{postId,jdbcType=VARCHAR}
+    </select>
+
+    <!--查询角色是否存在，存在提示分配权限-->
+    <select id="findRoleIsExist"
+            parameterType="com.partybuilding.webserver.dto.system.right.createRight.FindOrganizationAndPostIsExist"
+            resultMap="findRightBaseInfoResultMap">
+        select organization_name,post_name from sys_role where organization_id = #{organizationId,jdbcType=VARCHAR}
+        and post_id = #{postId,jdbcType=VARCHAR}
+    </select>
+</mapper>

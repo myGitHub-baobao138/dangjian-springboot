@@ -1,0 +1,31 @@
+
+// 获取所有下级组织，通过id的函数
+DROP FUNCTION getChildrenOrg
+CREATE FUNCTION getChildrenOrg (orgid VARCHAR(255)) RETURNS VARCHAR (4000)
+BEGIN
+DECLARE oTemp VARCHAR (4000);
+DECLARE oTempChild VARCHAR (4000);
+SET oTemp = '';
+SET oTempChild = CAST(orgid AS CHAR);
+WHILE oTempChild IS NOT NULL DO
+SET oTemp = CONCAT(oTemp, ',', oTempChild);
+SELECT
+	GROUP_CONCAT(organization_id) INTO oTempChild
+FROM
+	sys_organizational_structure
+WHERE
+	FIND_IN_SET(higher_organization_id, oTempChild) > 0;
+END
+WHILE;
+RETURN oTemp;
+END
+
+SELECT
+organization_id
+FROM
+sys_organizational_structure
+WHERE
+FIND_IN_SET(
+    organization_id,
+    getChildrenOrg ('790cd7646d5241e2937a0faa275467a5')
+)

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.dynamic.DynamicViewEssayDetailsMapper">
+
+  <!--文章表需要的基本列-->
+  <sql id="Base_Column">
+   dynamic_article_management.id,source,title,content,contribute_time contributeTime,cancel_time cancelTime,
+    pic_url picPath,sys_post.name as position,check_status state,check_time publishTime,
+		spmis.name as reviewerName,spmi.name as contributorName ,spmisinf.name as cancelName
+  </sql>
+
+  <!--党校培训表基本列-->
+  <sql id="BaseColumn_PartySchool">
+    dynamic_train_management.id ,title,content,publish_time as publishTime,publish_time contributeTime,publish_status state,
+    pic_url as picPath ,5  as  source ,spmi.name contributorName,spmi.name reviewerName,sys_post.name  as  position
+  </sql>
+  <!--志愿活动表基本列-->
+  <sql id="BaseColumn_Activity"  >
+    sva.id,activity_title title ,activity_content content, activity_time contributeTime,review_time as reviewTime,
+    activity_location  activityLocation,meeting_place  meetingPlace,activity_contact activitySponsor,
+    contact_number contactNumber,registration_deadline  registrationendTime, sys_post.name  as  position,
+    release_time publishTime,6 as source,s1.name  as  contributorName, s2.name  as  reviewerName,
+    sva.activity_state as activityState, approval_state as state
+  </sql>
+  <!--根据文章id查看文章详情-->
+  <select id="viewArticleById" resultType="com.partybuilding.webserver.dto.dynamic.clickLike.ViewEssayDetailsDto">
+    select
+    <if test="type == 1">
+      <include refid="Base_Column" />
+      from dynamic_article_management
+      left join sys_party_member_information as spmi on spmi.id=dynamic_article_management.contributor_id
+      left join sys_party_member_information as spmis on spmis.id = dynamic_article_management.reviewer_id
+      left join sys_party_member_information as spmisinf on spmisinf.id = dynamic_article_management.cancel_id
+      left join sys_party_organization_post on sys_party_organization_post.party_id =dynamic_article_management.contributor_id
+      left join sys_post on sys_post.id = sys_party_organization_post.post_id
+      where dynamic_article_management.id=#{titleId}
+      limit 1
+    </if>
+
+    <if test="type == 2">
+      <include refid="BaseColumn_Activity"/>
+      from service_volunteer_activity  as  sva
+      left join sys_party_member_information as s1 on s1.id = sva.activity_sponsor_id
+      left join sys_party_member_information as s2 on s2.id = sva.reviewer_id
+      left join sys_party_organization_post as spop on spop.post_id = sva.activity_sponsor_id
+      left join sys_post on sys_post.id = spop.post_id
+      where sva.id =#{titleId}
+      limit 1
+    </if>
+
+    <if test="type == 3">
+      <include refid="BaseColumn_PartySchool"></include>
+      from dynamic_train_management
+      left join sys_party_member_information as  spmi  on spmi.id = dynamic_train_management.editor_id
+      left join sys_party_organization_post as spop  on spop.post_id=dynamic_train_management.editor_id
+      left join sys_post on sys_post.id = spop.post_id
+      where dynamic_train_management.id = #{titleId}
+      limit 1
+    </if>
+
+  </select>
+</mapper>

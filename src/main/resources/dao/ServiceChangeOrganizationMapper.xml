@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceChangeOrganizationMapper">
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceChangeOrganization">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="user_number" jdbcType="VARCHAR" property="userNumber"/>
+        <result column="user_name" jdbcType="VARCHAR" property="userName"/>
+        <result column="user_sex" jdbcType="VARCHAR" property="userSex"/>
+        <result column="orgin_organization_id" jdbcType="VARCHAR" property="orginOrganizationId"/>
+        <result column="target_organization_id" jdbcType="VARCHAR" property="targetOrganizationId"/>
+        <result column="origin_organization_name" jdbcType="VARCHAR" property="originOrganizationName"/>
+        <result column="target_organization_name" jdbcType="VARCHAR" property="targetOrganizationName"/>
+        <result column="user_nation" jdbcType="VARCHAR" property="userNation"/>
+        <result column="change_reason" jdbcType="VARCHAR" property="changeReason"/>
+        <result column="state" jdbcType="BIT" property="state"/>
+        <result column="progress" jdbcType="BIT" property="progress"/>
+        <result column="application_date" jdbcType="DATE" property="applicationDate"/>
+        <result column="birthday" jdbcType="DATE" property="birthday"/>
+    </resultMap>
+
+    <!--查询转组织申请sql语句-->
+    <sql id="findChangeOrganizationByConditionSql">
+        <!--如果是最上级组织-->
+        <if test="currentOrganizationRank == 1">
+            select
+            id,user_number,user_name,user_sex,orgin_organization_id,target_organization_id,user_nation,change_reason,state,progress,application_date,birthday,sos1.organization_name
+            as origin_organization_name,sos2.organization_name as target_organization_name from
+            service_change_organization left join
+            sys_organizational_structure sos1 on sos1.organization_id = orgin_organization_id left join
+            sys_organizational_structure sos2 on sos2.organization_id = target_organization_id where user_name like
+            CONCAT('%',#{name,jdbcType=VARCHAR},'%')
+            <if test="applicationDate != null and applicationDate != ''">
+                and application_date like concat ('%',#{applicationDate},'%')
+            </if>
+            <if test="progress != null and progress >= 0">
+                and progress = #{progress,jdbcType=INTEGER}
+            </if>
+        </if>
+        <!--如果不是最上级组织-->
+        <if test="currentOrganizationRank != 1">
+            select
+            id,user_number,user_name,user_sex,orgin_organization_id,target_organization_id,user_nation,change_reason,state,progress,application_date,birthday,sos1.organization_name
+            as origin_organization_name,sos2.organization_name as target_organization_name from
+            service_change_organization left join
+            sys_organizational_structure sos1 on sos1.organization_id = orgin_organization_id left join
+            sys_organizational_structure sos2 on sos2.organization_id = target_organization_id where user_name like
+            CONCAT('%',#{name,jdbcType=VARCHAR},'%')
+            <if test="applicationDate != null and applicationDate != ''">
+                and application_date like concat ('%',#{applicationDate},'%')
+            </if>
+            <if test="progress != null and progress >= 0">
+                and progress = #{progress,jdbcType=BIT}
+            </if>
+            and ((orgin_organization_id = #{currentOrganizationId,jdbcType=VARCHAR} and state = 0) or
+            (target_organization_id = #{currentOrganizationId,jdbcType=VARCHAR} and state =
+            1))
+        </if>
+    </sql>
+
+    <!--查询转组织关系-->
+    <select id="findChangeOrganizationByCondition"
+            parameterType="com.partybuilding.webserver.dto.service.changeOrganization.FindChangeOrganizationInfoPageDTO"
+            resultMap="BaseResultMap">
+        <include refid="findChangeOrganizationByConditionSql"/>
+    </select>
+
+    <!--创建转组织关系申请时，通过学号/工号查询源组织与目的组织，返回的组织信息-->
+    <resultMap id="searchOrganizationByNumMap"
+               type="com.partybuilding.webserver.dto.service.changeOrganization.OriginAndTargetOrganizationDTO">
+        <result column="origin_id" jdbcType="VARCHAR" property="originOrganizationId"/>
+        <result column="origin_name" jdbcType="VARCHAR" property="originOrganizationName"/>
+        <collection property="targetOrganizations"
+                    ofType="com.partybuilding.webserver.dto.service.changeOrganization.OrganizationIdAndNameDTO">
+            <result column="target_id" jdbcType="VARCHAR" property="organizationId"/>
+            <result column="target_name" jdbcType="VARCHAR" property="organizationName"/>
+        </collection>
+    </resultMap>
+
+    <!--创建转组织关系申请时选择源组织与目的组织通过学号/工号查询-->
+    <select id="searchOrganizationByNum" parameterType="string" resultMap="searchOrganizationByNumMap">
+        select  origin.organization_id as origin_id,origin.organization_name as origin_name,target.organization_id as target_id,target.organization_name as target_name
+        from sys_organizational_structure origin,sys_organizational_structure target,sys_party_member_information spmi,sys_party_organization_post spop
+        where origin.organization_id = spop.organization_id and target.organization_id != spop.organization_id and spop.party_id = spmi.id and spmi.sno_or_job_number = #{number,jdbcType=VARCHAR}
+    </select>
+
+    <!--新增一条转组织关系申请-->
+    <insert id="createChangeOrganizationRelationshipApplication"
+            parameterType="com.partybuilding.webserver.dto.service.changeOrganization.OrganizationApplicationRequestDTO">
+        insert into service_change_organization
+        (id,user_number,user_name,user_sex,user_nation,application_date,birthday,orgin_organization_id,target_organization_id,change_reason)
+        value
+        (#{id,jdbcType=VARCHAR},#{userNumber,jdbcType=VARCHAR},#{userName,jdbcType=VARCHAR},#{userSex,jdbcType=VARCHAR},#{userNation,jdbcType=VARCHAR},#{applicationDate,jdbcType=DATE},#{birthday,jdbcType=DATE},#{originOrganizationId,jdbcType=VARCHAR},#{targetOrganizationId,jdbcType=VARCHAR},#{reason,jdbcType=VARCHAR});
+        <!--新增一条审批历史记录状态为申请-->
+        insert into service_change_organization_approval (id,approval_date,approver_id,state,application_id)
+        values(#{approvalHistoryId,jdbcType=VARCHAR},#{approvalDate,jdbcType=VARCHAR}, (select spmi.id from
+        sys_party_member_information spmi where spmi.sno_or_job_number = #{userNumber,jdbcType=VARCHAR}),2
+        ,#{id,jdbcType=VARCHAR})
+    </insert>
+
+    <!--查询党支部是否存在-->
+    <select id="findOriginOrganizationIsExist" parameterType="java.lang.String" resultType="java.lang.String">
+        select organization_id from sys_organizational_structure where organization_name = #{organizationName,jdbcType=VARCHAR}
+    </select>
+
+    <!--查询该党员是否是否在原党支部中-->
+    <select id="findPartyIsExistOnOriginOrganization"
+            parameterType="com.partybuilding.webserver.dto.service.changeOrganization.FindPartyIsExistOnOriginOrganizationDTO"
+            resultType="java.lang.String">
+        select sos.organization_id from sys_organizational_structure sos,sys_party_member_information spmi,sys_party_organization_post spop
+         where spop.party_id = spmi.id and spmi.sno_or_job_number = #{number,jdbcType=VARCHAR}
+         and spop.organization_id = sos.organization_id and  sos.organization_name = #{organizationName,jdbcType=VARCHAR}
+    </select>
+
+    <!--修改审批状态Sql-->
+    <sql id="updateApprovalState">
+        <!--添加一条审核历史记录-->
+        insert into service_change_organization_approval (id,approval_date,approver_id,state,remark,application_id)
+        values(#{id,jdbcType=VARCHAR},#{approvalDate,jdbcType=VARCHAR},#{approverId,jdbcType=VARCHAR},#{state,jdbcType=INTEGER}
+        ,#{remark,jdbcType=VARCHAR},#{applicationId,jdbcType=VARCHAR});
+
+        <!--如果当前操作人组织等于被审批对象原组织-->
+        <if test="currentApproverOrganizationId == originOrganizationId">
+            <!--如果状态为0：不通过////更改为审核失败&&&&并且更改进度为完成-->
+            <if test="state == 0">
+                update service_change_organization set state = 2,progress = 2 where id =
+                #{applicationId,jdbcType=VARCHAR}
+            </if>
+            <!--如果状态为1：通过////更改为移交党支部未审核并且更改进度为审批中-->
+            <if test="state == 1">
+                update service_change_organization set state = 1,progress = 1 where id =
+                #{applicationId,jdbcType=VARCHAR}
+            </if>
+        </if>
+        <!--如果当前操作人组织等于被审批对象移交的组织-->
+        <if test="currentApproverOrganizationId == targetOrganizationId">
+            <!--如果状态为0：不通过////更改为审核失败&&&&并且更改进度为完成-->
+            <if test="state == 0">
+                update service_change_organization set state = 2,progress = 2 where id =
+                #{applicationId,jdbcType=VARCHAR}
+            </if>
+            <!--如果状态为1：通过////更改为审核成功&&&&并且更改进度为完成-->
+            <if test="state == 1">
+                update service_change_organization set state = 3,progress = 2 where id =
+                #{applicationId,jdbcType=VARCHAR};
+                <!--SQL如果审核成功，更换党员组织,职务默认为党员-->
+                <include refid="updatePartyOrganization"/>
+            </if>
+        </if>
+    </sql>
+
+    <!--SQL如果审核成功，更换党员组织,职务默认为党员-->
+    <sql id="updatePartyOrganization">
+        <!--更新sys_party_organization_post表的信息-->
+        update sys_party_organization_post spop set spop.organization_id =
+        #{targetOrganizationId,jdbcType=VARCHAR},spop.post_id = (select post.id from
+        sys_post post where post.name = '党员') where organization_id = #{originOrganizationId,jdbcType=VARCHAR} and
+        party_id =
+        (select spmi.id from sys_party_member_information spmi where spmi.sno_or_job_number = (select sco.user_number
+        from service_change_organization sco where id = #{applicationId,jdbcType=VARCHAR}))
+    </sql>
+
+    <!--添加一条审核历史记录-->
+    <insert id="addApprovalRecord"
+            parameterType="com.partybuilding.webserver.entity.service.ServiceChangeOrganizationApproval">
+        <include refid="updateApprovalState"/>
+    </insert>
+
+    <!--查询审批历史记录结果图-->
+    <resultMap id="findApprovalHistoryMap"
+               type="com.partybuilding.webserver.dto.service.changeOrganization.OrganizationApprovalHistory">
+        <result column="approval_date" jdbcType="DATE" property="approvalDate"/>
+        <result column="name" jdbcType="VARCHAR" property="approverName"/>
+        <result column="state" jdbcType="INTEGER" property="state"/>
+        <result column="remark" jdbcType="VARCHAR" property="remark"/>
+    </resultMap>
+
+    <!--查询审批历史-->
+    <select id="findApprovalHistory" parameterType="java.lang.String" resultMap="findApprovalHistoryMap">
+        select scoa.approval_date,spmi.name,scoa.state,scoa.remark
+        from service_change_organization_approval scoa,sys_party_member_information spmi
+         where spmi.id = scoa.approver_id and scoa.application_id = #{applicationId,jdbcType=VARCHAR}
+    </select>
+
+    <select id="findApplicationState" parameterType="java.lang.String" resultType="java.lang.String">
+        select state+1 from service_change_organization where progress = 2 and id = #{applicationId,jdbcType=VARCHAR}
+    </select>
+</mapper>

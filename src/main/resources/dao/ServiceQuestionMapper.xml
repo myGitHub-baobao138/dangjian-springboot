@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceQuestionMapper">
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceQuestion">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="title" jdbcType="VARCHAR" property="title" />
+    <result column="question" jdbcType="VARCHAR" property="question" />
+    <result column="question_type" jdbcType="VARCHAR" property="questionType" />
+    <result column="answer_description" jdbcType="VARCHAR" property="answerDescription" />
+    <result column="correct_answer" jdbcType="VARCHAR" property="correctAnswer" />
+    <result column="picture" jdbcType="VARCHAR" property="picture" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, title, question, question_type, answer_description, correct_answer, picture
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from service_question
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+
+  <!--获取问题列表-->
+  <select id="getQuestionList" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from service_question
+  </select>
+
+  <!--获取问题总数-->
+  <select id="getQuestionCount" parameterType="java.lang.Integer" resultType="java.lang.Integer">
+    select
+    count(*)
+    from service_question
+    <if test="type == 1">
+      where question_type = 1
+    </if>
+    <if test="type == 2">
+      where question_type = 2
+    </if>
+  </select>
+
+<!--查看问题-->
+  <select id="searchQuestionById" parameterType="java.lang.String"
+          resultMap="BaseResultMap">
+    select *
+    from service_question
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+
+<!--根据问题分类查询-->
+  <select id="searchQuestionByType" resultMap="BaseResultMap">
+    select *
+    from service_question
+    where question_type = #{type,jdbcType=VARCHAR}
+  </select>
+
+    <!--获取所有问题-->
+ <select id="getAllQuestions" resultMap="BaseResultMap">
+    select *
+    from service_question
+  </select>
+
+  <!--删除问题-->
+  <delete id="deleteQuestion" parameterType="java.lang.String">
+    delete from service_question
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+
+  <!--删除考题-问题-->
+<delete id="deleteExaminationQuestion" parameterType="java.lang.String">
+    delete from service_examination_question
+    where question_id = #{id,jdbcType=VARCHAR}
+  </delete>
+
+  <!--添加问题-->
+  <insert id="addQuestion" parameterType="com.partybuilding.webserver.entity.service.ServiceQuestion">
+    insert into service_question (id, title, question,
+      question_type, answer_description, correct_answer,
+      picture)
+    select #{id,jdbcType=VARCHAR}, #{title,jdbcType=VARCHAR}, #{question,jdbcType=VARCHAR},
+      #{questionType,jdbcType=VARCHAR}, #{answerDescription,jdbcType=VARCHAR}, #{correctAnswer,jdbcType=VARCHAR},
+      #{picture,jdbcType=VARCHAR}
+    from dual
+    where not exists
+    (select * from service_question where title=#{title,jdbcType=VARCHAR} and question = #{question,jdbcType=VARCHAR})
+  </insert>
+
+
+  <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.service.ServiceQuestion">
+    insert ignore  into service_question
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="title != null">
+        title,
+      </if>
+      <if test="question != null">
+        question,
+      </if>
+      <if test="questionType != null">
+        question_type,
+      </if>
+      <if test="answerDescription != null">
+        answer_description,
+      </if>
+      <if test="correctAnswer != null">
+        correct_answer,
+      </if>
+      <if test="picture != null">
+        picture,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="title != null">
+        #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="question != null">
+        #{question,jdbcType=VARCHAR},
+      </if>
+      <if test="questionType != null">
+        #{questionType,jdbcType=VARCHAR},
+      </if>
+      <if test="answerDescription != null">
+        #{answerDescription,jdbcType=VARCHAR},
+      </if>
+      <if test="correctAnswer != null">
+        #{correctAnswer,jdbcType=VARCHAR},
+      </if>
+      <if test="picture != null">
+        #{picture,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.service.ServiceQuestion">
+    update service_question
+    <set>
+      <if test="title != null">
+        title = #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="question != null">
+        question = #{question,jdbcType=VARCHAR},
+      </if>
+      <if test="questionType != null">
+        question_type = #{questionType,jdbcType=VARCHAR},
+      </if>
+      <if test="answerDescription != null">
+        answer_description = #{answerDescription,jdbcType=VARCHAR},
+      </if>
+      <if test="correctAnswer != null">
+        correct_answer = #{correctAnswer,jdbcType=VARCHAR},
+      </if>
+      <if test="picture != null">
+        picture = #{picture,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.service.ServiceQuestion">
+    update service_question
+    set title = #{title,jdbcType=VARCHAR},
+      question = #{question,jdbcType=VARCHAR},
+      question_type = #{questionType,jdbcType=VARCHAR},
+      answer_description = #{answerDescription,jdbcType=VARCHAR},
+      correct_answer = #{correctAnswer,jdbcType=VARCHAR},
+      picture = #{picture,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+
+  <!--编辑问题-->
+  <update id="editQuestion" parameterType="com.partybuilding.webserver.dto.service.question.EditQuestionDTO">
+    update service_question
+    set title = #{title,jdbcType=VARCHAR},
+      question = #{question,jdbcType=VARCHAR},
+      answer_description = #{answerDescription,jdbcType=VARCHAR},
+      correct_answer = #{correctAnswer,jdbcType=VARCHAR},
+      question_type= #{questionType,jdbcType=VARCHAR},
+      picture = #{picture,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR} and   not exists (select 1 from
+    (select 1 from service_question where title = #{title,jdbcType=VARCHAR}
+     and question = #{question,jdbcType=VARCHAR}
+     and question_type=#{questionType,jdbcType=VARCHAR}
+     and id != #{id,jdbcType=VARCHAR}) a)
+  </update>
+</mapper>

@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.system.SysPartyMemberInformationMapper">
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.system.SysPartyMemberInformation">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="sno_or_job_number" jdbcType="VARCHAR" property="snoOrJobNumber"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="post_id" jdbcType="VARCHAR" property="postId"/>
+        <result column="sex" jdbcType="BIT" property="sex"/>
+        <result column="party_join_time" jdbcType="TIMESTAMP" property="partyJoinTime"/>
+        <result column="academy_id" jdbcType="VARCHAR" property="academyId"/>
+        <result column="contact" jdbcType="VARCHAR" property="contact"/>
+        <result column="classification" jdbcType="VARCHAR" property="classification"/>
+    </resultMap>
+    <resultMap id="insertMap" type="com.partybuilding.webserver.dto.system.partyInformation.AddInformationDto">
+        <id column="id" jdbcType="VARCHAR" property="partyId"></id>
+        <result column="name" jdbcType="VARCHAR" property="name"></result>
+        <result column="sno_or_job_number" jdbcType="VARCHAR" property="snoOrJobNumber"></result>
+        <result column="postName" property="postName" jdbcType="VARCHAR"></result>
+        <result column="sex" jdbcType="BIT" property="sex"></result>
+        <result column="party_join_time" jdbcType="VARCHAR" property="enterTime"></result>
+        <result column="organizationName" jdbcType="VARCHAR" property="organizationName"></result>
+        <result column="contact" jdbcType="VARCHAR" property="phoneNumber"></result>
+        <result column="classification" jdbcType="VARCHAR" property="category"></result>
+    </resultMap>
+    <resultMap id="selectNameAndPost" type="com.partybuilding.webserver.dto.system.partyInformation.SearchResultDto">
+        <result column="name" jdbcType="VARCHAR" property="name"></result>
+        <result column="sno_or_job_number" jdbcType="VARCHAR" property="snoOrJobNumber"></result>
+        <result column="sex" jdbcType="BIT" property="sex"></result>
+        <result column="enterTime" jdbcType="TIMESTAMP" property="enterTime"></result>
+        <result column="contact" jdbcType="VARCHAR" property="phoneNumber"></result>
+        <result column="classification" jdbcType="VARCHAR" property="category"></result>
+    </resultMap>
+    <resultMap id="numberResult" type="java.lang.Integer">
+        <result column="sex" jdbcType="BIT"></result>
+    </resultMap>
+
+    <!--查询可以添加账号的党员数据-->
+    <resultMap id="selectPartyAndSno" type="com.partybuilding.webserver.dto.system.partyInformation.SelectSnoAndName">
+        <result column="name" jdbcType="VARCHAR" property="name"></result>
+        <collection property="List" ofType="com.partybuilding.webserver.dto.system.partyInformation.SnoAndId"
+                    column="name" select="selectPartySnoByName">
+        </collection>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+    id, sno_or_job_number, name, post_id, sex, party_join_time, academy_id,
+    contact, classification
+  </sql>
+
+    <sql id="selectNameAndPost_list">
+    information.id,sno_or_job_number, information.name,(select group_concat(`name` Separator '、')) as postName, sex,DATE_FORMAT(party_join_time,'%Y/%m/%d') as enterTime,
+    sys_organizational_structure.organizationName as organizationName,
+    contact, classification
+  </sql>
+    <!--子查询-->
+    <select id="selectPartySnoByName" resultType="com.partybuilding.webserver.dto.system.partyInformation.SnoAndId">
+        select sno_or_job_number as snoOrJobNumber,id from sys_party_member_information where id not in (select
+        sys_party_member_information_id from sys_user)
+        <if test="name!=null">
+            and name =#{name,jdbcType=VARCHAR}
+        </if>
+        order by sno_or_job_number asc
+    </select>
+    <!--父查询-->
+    <select id="selectPartyNameLike" resultMap="selectPartyAndSno" parameterType="java.lang.String">
+        select distinct name from sys_party_member_information where id not in (select sys_party_member_information_id
+        from sys_user)
+        <if test="name!=null">
+            and name like CONCAT('%',#{name},'%')
+        </if>
+        order by sno_or_job_number asc
+    </select>
+    <!--按照组织查询党员数据 完成-->
+    <select id="selectInformationByAcademy" parameterType="java.lang.String" resultMap="selectNameAndPost">
+        select
+        <include refid="selectNameAndPost_list"/>
+        from sys_party_member_information as information
+        left join sys_post on sys_post.id = information.post_id LEFT JOIN
+        sys_academy ON sys_academy.id = information.academy_id
+        where information.academy_id= #{academy,jdbcType=VARCHAR}
+    </select>
+    <!--查找全部党员信息  完成-->
+    <select id="selectAllInformation" resultMap="selectNameAndPost">
+        select
+        <include refid="selectNameAndPost_list"/>
+        from sys_party_member_information as information
+        left join sys_post on sys_post.id = information.post_id LEFT JOIN
+        sys_academy ON sys_academy.id = information.academy_id order by sno_or_job_number asc
+    </select>
+    <!--按照学号或者工号查询数据-->
+    <select id="selectInformationBySno" parameterType="java.lang.String" resultMap="selectNameAndPost">
+        select
+        <include refid="selectNameAndPost_list"/>
+        from sys_party_member_information
+        where sno_or_job_number = #{number}
+    </select>
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from sys_party_member_information
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+    <select id="selectByNumber" parameterType="java.lang.String" resultMap="numberResult">
+    select ifnull((select sex from sys_party_member_information where sno_or_job_number=#{number}),2)
+  </select>
+
+    <!--根据党员姓名进行模糊查询当前学校党员信息 校级-->
+    <select id="selectByName" parameterType="java.lang.String" resultMap="selectNameAndPost">
+        select
+        <include refid="selectNameAndPost_list"/>
+        from sys_party_member_information as information
+        left join sys_post on sys_post.id = information.post_id LEFT JOIN
+        sys_academy ON sys_academy.id = information.academy_id
+        where information.name like CONCAT('%',#{name},'%')
+    </select>
+    <!--根据党员姓名以及学院查询数据   院级-->
+    <select id="selectByNameAndAcademy"
+            parameterType="com.partybuilding.webserver.dto.system.partyInformation.SearchByNameAndAcademy"
+            resultMap="selectNameAndPost">
+        select
+        <include refid="selectNameAndPost_list"/>
+        from sys_party_member_information as information
+        left join sys_post on sys_post.id = information.post_id LEFT JOIN
+        sys_academy ON sys_academy.id = information.academy_id
+        where information.name like CONCAT('%',#{name},'%') and
+        information.academy_id = #{academyId,jdbcType=VARCHAR}
+    </select>
+    <!--根据党员的职务查找职务  校级-->
+    <select id="selectByPostName" parameterType="java.lang.String" resultMap="selectNameAndPost">
+        select
+        <include refid="selectNameAndPost_list"/>
+        from sys_party_member_information as information
+        left join sys_post on sys_post.id = information.post_id LEFT JOIN
+        sys_academy ON sys_academy.id = information.academy_id
+        where sys_post.name=#{postName,jdbcType=VARCHAR}
+    </select>
+    <!--根据党员职务名称查询数据  院级-->
+    <select id="selectByPostNameAndAcademy" parameterType="java.lang.String" resultMap="selectNameAndPost">
+        select
+        <include refid="selectNameAndPost_list"/>
+        from sys_party_member_information as information
+        left join sys_post on sys_post.id = information.post_id LEFT JOIN
+        sys_academy ON sys_academy.id = information.academy_id
+        where sys_post.name=#{postName,jdbcType=VARCHAR} and sys_post.academy_id = #{academyId,jdbcType=VARCHAR}
+    </select>
+
+    <!--根据党员姓名以及职务查找党员信息  校级-->
+    <select id="selectByNameAndPost"
+            parameterType="com.partybuilding.webserver.dto.system.partyInformation.SearchPostAndNameDto"
+            resultMap="selectNameAndPost">
+        select
+        <include refid="selectNameAndPost_list"/>
+        from sys_party_member_information as information
+        left join sys_post on sys_post.id = information.post_id LEFT JOIN
+        sys_academy ON sys_academy.id = information.academy_id
+        where sys_post.name=#{postName,jdbcType=VARCHAR} AND information.name like CONCAT('%',#{name},'%')
+    </select>
+    <!--根据党员姓名以及职务查找党员信息  院级-->
+    <select id="selectByNameAndPostAndAcademy"
+            parameterType="com.partybuilding.webserver.dto.system.partyInformation.SearchPostAndNameAndAcademyDto"
+            resultMap="insertMap">
+        select
+        <include refid="selectNameAndPost_list"/>
+        from sys_party_member_information information
+        left join sys_party_organization_post partyOrg on information.id = partyOrg.party_id
+        left join sys_post on sys_post.id = partyOrg.post_id
+        <if test="postName==null">
+            where information.name like CONCAT('%',#{name},'%')
+        </if>
+    </select>
+    <!--查询所有党员-->
+    <select id="selectAllPartyByOrganizationId" resultType="java.lang.String" parameterType="java.lang.String">
+        select DISTINCT(sys_party_organization_post.party_id)
+        from sys_party_organization_post
+
+    </select>
+    <!--查询二级组织下面所有的党员-->
+    <select id="selectPartyByOrganizationId" resultType="java.lang.String" parameterType="java.lang.String">
+        select DISTINCT(spost.party_id)
+        from sys_party_organization_post as spost where spost.organization_id=#{organizationId}
+        or spost.organization_id in (select sys_organizational_structure.organization_id
+            from sys_organizational_structure where higher_organization_id=#{organizationId})
+    </select>
+
+    <select id="getSnoList" resultType="com.partybuilding.webserver.dto.system.partyInformation.SnoAndId">
+    select sno_or_job_number as snoOrJobNumber,id from sys_party_member_information
+  </select>
+    <!--根据id删除-->
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from sys_party_member_information
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+    <!--根据党员学号工号删除-->
+    <delete id="deleteBySnoOrNumber" parameterType="java.lang.String">
+    delete from sys_party_member_information
+    where sno_or_job_number = #{number,jdbcType=VARCHAR}
+  </delete>
+
+    <!--插入大量数据-->
+    <insert id="insertList">
+        insert into sys_party_member_information (id, sno_or_job_number, name,
+        sex, party_join_time,contact, classification)
+        values
+        <foreach collection="informations" item="information" separator=",">
+            (#{information.partyId},#{information.snoOrJobNumber},#{information.name},#{information.sex},
+            #{information.enterTime},#{information.phoneNumber},#{information.category})
+        </foreach>
+    </insert>
+    <!--插入单条数据-->
+    <!--管理员是学院级别的用户-->
+    <insert id="insert" parameterType="com.partybuilding.webserver.dto.system.partyInformation.AddPartyInformationDto">
+    insert into sys_party_member_information (id, sno_or_job_number, `name`,
+       sex, party_join_time,
+       contact, classification)
+    values (#{partyId,jdbcType=VARCHAR}, #{snoOrJobNumber,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR},
+       #{sex,jdbcType=BIT}, #{enterTime,jdbcType=TIMESTAMP},
+      #{phoneNumber,jdbcType=VARCHAR}, #{category,jdbcType=VARCHAR} )
+  </insert>
+    <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.system.SysPartyMemberInformation">
+        insert into sys_party_member_information
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="snoOrJobNumber != null">
+                sno_or_job_number,
+            </if>
+            <if test="name != null">
+                name,
+            </if>
+            <if test="postId != null">
+                post_id,
+            </if>
+            <if test="sex != null">
+                sex,
+            </if>
+            <if test="partyJoinTime != null">
+                party_join_time,
+            </if>
+            <if test="academyId != null">
+                academy_id,
+            </if>
+            <if test="contact != null">
+                contact,
+            </if>
+            <if test="classification != null">
+                classification,
+            </if>
+            <if test="
+organizationId != null">
+
+                organization_id,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="snoOrJobNumber != null">
+                #{snoOrJobNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="name != null">
+                #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="postId != null">
+                #{postId,jdbcType=VARCHAR},
+            </if>
+            <if test="sex != null">
+                #{sex,jdbcType=BIT},
+            </if>
+            <if test="partyJoinTime != null">
+                #{partyJoinTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="academyId != null">
+                #{academyId,jdbcType=VARCHAR},
+            </if>
+            <if test="contact != null">
+                #{contact,jdbcType=VARCHAR},
+            </if>
+            <if test="classification != null">
+                #{classification,jdbcType=VARCHAR},
+            </if>
+            <if test="
+organizationId != null">
+                #{
+        organizationId,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.partybuilding.webserver.dto.system.partyInformation.AddInformationDto">
+        update sys_party_member_information
+        <set>
+            <if test="snoOrJobNumber != null">
+                sno_or_job_number = #{snoOrJobNumber,jdbcType=VARCHAR},
+            </if>
+            <if test="name != null">
+                name = #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="sex != null">
+                sex = #{sex,jdbcType=BIT},
+            </if>
+            <if test="partyJoinTime != null">
+                party_join_time = #{enterTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="contact != null">
+                contact = #{contact,jdbcType=VARCHAR},
+            </if>
+            <if test="classification != null">
+                classification = #{category,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{partyId,jdbcType=VARCHAR}
+    </update>
+    <!--修改信息-->
+    <update id="updateByPrimaryKey"
+            parameterType="com.partybuilding.webserver.dto.system.partyInformation.AddPartyInformationDto">
+    update sys_party_member_information
+    set sno_or_job_number = #{snoOrJobNumber,jdbcType=VARCHAR},
+      name = #{name,jdbcType=VARCHAR},
+      sex = #{sex,jdbcType=BIT},
+      party_join_time = #{enterTime,jdbcType=TIMESTAMP},
+      contact = #{phoneNumber,jdbcType=VARCHAR},
+      classification = #{category,jdbcType=VARCHAR}
+    where id = #{partyId,jdbcType=VARCHAR}
+  </update>
+    <update id="updateBySnoOrNumber"
+            parameterType="com.partybuilding.webserver.dto.system.partyInformation.AddInformationDto">
+    update sys_party_member_information
+    set sno_or_job_number = #{snoOrJobNumber,jdbcType=VARCHAR},
+      name = #{name,jdbcType=VARCHAR},
+      post_id = #{postId,jdbcType=VARCHAR},
+      sex = #{sex,jdbcType=BIT},
+      party_join_time = #{partyJoinTime,jdbcType=TIMESTAMP},
+      contact = #{contact,jdbcType=VARCHAR},
+      classification = #{classification,jdbcType=VARCHAR}
+    where id = #{partyId,jdbcType=VARCHAR}
+  </update>
+
+    <!--查询党员基本信息结果图-->
+    <resultMap id="findPartyBaseInfoResultMap" type="com.partybuilding.webserver.dto.system.partyInformation.FindPartyBaseInfoDTO">
+        <id column="party_id" jdbcType="VARCHAR" property="partyId"/>
+        <id column="post_name" jdbcType="VARCHAR" property="postName"/>
+        <id column="name" jdbcType="VARCHAR" property="name"/>
+        <id column="sno_or_job_number" jdbcType="VARCHAR" property="number"/>
+        <id column="partyJoinTime" jdbcType="TIMESTAMP" property="partyJoinTime"/>
+        <id column="organization_name" jdbcType="VARCHAR" property="organizationName"/>
+        <id column="organization_id" jdbcType="VARCHAR" property="organizationId"/>
+        <id column="contact" jdbcType="VARCHAR" property="contact"/>
+        <id column="classification" jdbcType="INTEGER" property="classification"/>
+        <id column="spop_id" jdbcType="VARCHAR" property="spopId"/>
+        <result column="post_id" jdbcType="VARCHAR" property="postId" ></result>
+        <result column="sex" jdbcType="BIT" property="sex"></result>
+    </resultMap>
+
+    <!--查询党员基本信息-->
+    <select id="findPartyBaseInfo" parameterType="com.partybuilding.webserver.dto.system.partyInformation.FindPartyBaseInfoPageInfoDTO" resultMap="findPartyBaseInfoResultMap">
+        <!--如果等级较高，查看所有党员-->
+        <if test="rank == 1">
+            select spmi.id as party_id,post.name as post_name,spmi.name,spmi.sno_or_job_number,spop.organization_id,spop.post_id,
+            DATE_FORMAT(party_join_time,'%Y/%m/%d') as partyJoinTime,sos.organization_name,spmi.contact,spmi.classification,spop.id
+            as spop_id,spmi.sex from sys_party_member_information spmi,sys_organizational_structure sos,
+            sys_party_organization_post spop,sys_post post where spop.party_id = spmi.id
+            and spop.organization_id = sos.organization_id and spop.post_id = post.id
+            and spmi.name like CONCAT('%',#{partyName,jdbcType=VARCHAR},'%')
+            and post.name like CONCAT('%',#{postName,jdbcType=VARCHAR},'%') order by spmi.sno_or_job_number asc
+        </if>
+        <!--如果等级较低，查看本身和下级党员-->
+        <if test="rank != 1">
+            (select spmi.id as party_id,post.name as
+            post_name,spop.organization_id,spop.post_id,spmi.name,spmi.sno_or_job_number,DATE_FORMAT(spmi.party_join_time,'%Y/%m/%d') as partyJoinTime,sos.organization_name,spmi.contact,spmi.classification,spop.id
+            as spop_id,spmi.sex from sys_party_member_information spmi,sys_organizational_structure
+            sos,sys_party_organization_post spop,sys_post post where spop.party_id = spmi.id and spop.organization_id =
+            sos.organization_id and spop.post_id = post.id and sos.organization_id =
+            #{currentUserOrganizationId,jdbcType=VARCHAR} and spmi.name like CONCAT('%',#{partyName,jdbcType=VARCHAR},'%')
+            and post.name like CONCAT('%',#{postName,jdbcType=VARCHAR},'%') order by spmi.sno_or_job_number asc)
+            union
+            (select spmi.id as party_id,post.name as post_name,spop.organization_id,spop.post_id,spmi.name,spmi.sno_or_job_number,
+            DATE_FORMAT(spmi.party_join_time,'%Y/%m/%d') as partyJoinTime,sos.organization_name,spmi.contact,spmi.classification,spop.id
+            as spop_id ,spmi.sex from sys_party_member_information spmi,sys_organizational_structure sos,
+            sys_party_organization_post spop,sys_post post where spop.party_id = spmi.id
+            and spop.organization_id = sos.organization_id and spop.post_id = post.id
+            and sos.organization_id in (select sos2.organization_id from sys_organizational_structure sos2 where
+            sos2.higher_organization_id = #{currentUserOrganizationId,jdbcType=VARCHAR})
+            and spmi.name like CONCAT('%',#{partyName,jdbcType=VARCHAR},'%')
+            and post.name like CONCAT('%',#{postName,jdbcType=VARCHAR},'%') order by spmi.sno_or_job_number asc)
+        </if>
+    </select>
+</mapper>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceAnswerDetailsMapper">
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceAnswerDetails">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="answer_record_id" jdbcType="VARCHAR" property="answerRecordId" />
+    <result column="answer_content" jdbcType="VARCHAR" property="answerContent" />
+    <result column="question_id" jdbcType="VARCHAR" property="questionId" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, answer_record_id, answer_content, question_id
+  </sql>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from service_answer_details
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from service_answer_details
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+
+  <insert id="insert" parameterType="com.partybuilding.webserver.entity.service.ServiceAnswerDetails">
+    insert into service_answer_details (id, answer_record_id, answer_content, 
+      question_id)
+    values (#{id,jdbcType=VARCHAR}, #{answerRecordId,jdbcType=VARCHAR}, #{answerContent,jdbcType=VARCHAR}, 
+      #{questionId,jdbcType=VARCHAR})
+  </insert>
+
+  <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.service.ServiceAnswerDetails">
+    insert into service_answer_details
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="answerRecordId != null">
+        answer_record_id,
+      </if>
+      <if test="answerContent != null">
+        answer_content,
+      </if>
+      <if test="questionId != null">
+        question_id,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="answerRecordId != null">
+        #{answerRecordId,jdbcType=VARCHAR},
+      </if>
+      <if test="answerContent != null">
+        #{answerContent,jdbcType=VARCHAR},
+      </if>
+      <if test="questionId != null">
+        #{questionId,jdbcType=VARCHAR},
+      </if>
+    </trim>
+    </insert>
+
+  <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.service.ServiceAnswerDetails">
+    update service_answer_details
+    <set>
+      <if test="answerRecordId != null">
+        answer_record_id = #{answerRecordId,jdbcType=VARCHAR},
+      </if>
+      <if test="answerContent != null">
+        answer_content = #{answerContent,jdbcType=VARCHAR},
+      </if>
+      <if test="questionId != null">
+        question_id = #{questionId,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+
+  <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.service.ServiceAnswerDetails">
+    update service_answer_details
+    set answer_record_id = #{answerRecordId,jdbcType=VARCHAR},
+      answer_content = #{answerContent,jdbcType=VARCHAR},
+      question_id = #{questionId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+
+</mapper>

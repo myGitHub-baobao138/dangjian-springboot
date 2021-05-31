@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceVoteOptionMapper">
+
+  <sql id="Base_Column_List">
+    vote_id, id, service_vote_option.option, option_content
+  </sql>
+
+  <insert id="insertList">
+    insert into service_vote_option(vote_id, id, service_vote_option.option, option_content)
+    values
+    <foreach collection="voteOptions" item="voteOption" separator=",">
+      (#{voteOption.voteId},#{voteOption.id},#{voteOption.option},
+      #{voteOption.optionContent})
+    </foreach>
+  </insert>
+  <delete id="deleteVote" parameterType="java.lang.String">
+    delete from service_vote_option
+    where id =#{voteId,jdbcType=VARCHAR}
+  </delete>
+  <update id="updateVote" parameterType="java.util.List">
+    <foreach collection="voteOptions" item="voteOption"  separator=";">
+      update service_vote_option
+      set `option`=#{voteOption.option,jdbcType=VARCHAR},
+      option_content=#{voteOption.optionContent,jdbcType=VARCHAR}
+      where id=#{voteOption.id,jdbcType=VARCHAR}
+    </foreach>
+  </update>
+
+</mapper>

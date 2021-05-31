@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceMinuteMeetingMapper">
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceMinuteMeeting">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="minute_type" jdbcType="VARCHAR" property="minuteType" />
+    <result column="meeting_id" jdbcType="VARCHAR" property="meetingId" />
+    <result column="meeting_recorder_id" jdbcType="VARCHAR" property="meetingRecorderId" />
+    <result column="recorder_time" jdbcType="TIMESTAMP" property="recorderTime" />
+    <result column="minute_content" jdbcType="VARCHAR" property="minuteContent" />
+  </resultMap>
+
+    <resultMap id="MinuteMeeting" type="com.partybuilding.webserver.dto.service.threeSessionOneClass.ServiceMinuteMeetingDTO">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="title" jdbcType="VARCHAR" property="title" />
+        <result column="minute_type" jdbcType="VARCHAR" property="minuteType" />
+        <result column="organization_name" jdbcType="VARCHAR" property="organizationName" />
+        <result column="host_participate_id" jdbcType="VARCHAR" property="hostParticipateId" />
+        <result column="host_participate_name" jdbcType="VARCHAR" property="hostParticipateName" />
+        <result column="meeting_id" jdbcType="VARCHAR" property="meetingId" />
+        <result column="meeting_recorder_id" jdbcType="VARCHAR" property="meetingRecorderId" />
+        <result column="meeting_recorder_name" jdbcType="VARCHAR" property="meetingRecorderName" />
+        <result column="recorder_time" jdbcType="VARCHAR" property="recorderTime" />
+        <result column="minute_content" jdbcType="VARCHAR" property="minuteContent" />
+    </resultMap>
+
+  <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="com.partybuilding.webserver.entity.service.ServiceMinuteMeeting">
+    <result column="minute_content" jdbcType="LONGVARCHAR" property="minuteContent" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, minute_type, meeting_id, meeting_recorder_id, recorder_time
+  </sql>
+  <sql id="Blob_Column_List">
+    minute_content
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="ResultMapWithBLOBs">
+    select 
+    <include refid="Base_Column_List" />
+    ,
+    <include refid="Blob_Column_List" />
+    from service_minute_meeting
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  <select id="getMinuteMeetingList" parameterType="com.partybuilding.webserver.dto.service.threeSessionOneClass.ServiceMinuteMeetingQueryDTO" resultMap="MinuteMeeting">
+        SELECT
+        mm.id,minute_type,tsoc.title,meeting_id,organization_name,
+        minute_content,pmi.NAME AS meeting_recorder_name,recorder_time,
+        group_concat( pmi1.NAME ORDER BY pmi1.id ) AS host_participate_name
+        FROM
+        service_minute_meeting AS mm
+        left JOIN service_three_session_one_class AS tsoc ON tsoc.id = mm.meeting_id
+        LEFT JOIN sys_party_member_information AS pmi ON pmi.id = mm.meeting_recorder_id
+        left join sys_organizational_structure as os on tsoc.organization_id = os.organization_id
+        LEFT JOIN sys_party_member_information AS pmi1 ON find_in_set( pmi1.id, tsoc.host_participate )
+
+
+        <if test="rank == 2">
+            and (tsoc.organization_id = #{organizationId,jdbcType=VARCHAR}
+              or tsoc.organization_id in(select organization_id from sys_organizational_structure as os2 where
+                os2.higher_organization_id = #{organizationId,jdbcType=VARCHAR}))
+        </if>
+        <if test="rank == 3">
+            and tsoc.organization_id = #{organizationId,jdbcType=VARCHAR}
+        </if>
+        <if test="minuteType != null and minuteType != ''">
+             and minute_type = #{minuteType,jdbcType=VARCHAR}
+        </if>
+        <if test="recorderTime != null and recorderTime != ''">
+            and recorder_time like CONCAT(CONCAT('%',#{recorderTime,jdbcType=VARCHAR},'%'))
+        </if>
+      group by mm.id
+      order by recorder_time
+    </select>
+
+    <select id="getMinuteMeetingByTheeOneId" parameterType="java.lang.String" resultMap="MinuteMeeting">
+        select  mm.id,minute_type,tsoc.title,meeting_id,organization_name,
+                minute_content,pmi.NAME AS meeting_recorder_name,recorder_time,
+                group_concat( pmi1.NAME ORDER BY pmi1.id ) AS host_participate_name,tsoc.host_participate
+        FROM service_minute_meeting AS mm
+                 left JOIN service_three_session_one_class AS tsoc ON tsoc.id = mm.meeting_id
+                 LEFT JOIN sys_party_member_information AS pmi ON pmi.id = mm.meeting_recorder_id
+                 left join sys_organizational_structure as os on tsoc.organization_id = os.organization_id
+                 left join service_participate_three_session_one_class as pto on pto.three_session_one_class_id = tsoc.id
+                 LEFT JOIN sys_party_member_information AS pmi1 ON find_in_set( pmi1.id, pto.participate_id )
+        where mm.meeting_id = #{meetingId,jdbcType=VARCHAR}
+    </select>
+
+    <!--得到参会人名字-->
+    <select id="getParticipateName" parameterType="java.lang.String" resultType="java.lang.String">
+        select  group_concat( pmi.NAME ORDER BY pmi.id ) AS host_participate_name
+        FROM service_three_session_one_class AS tsoc
+                 left join service_participate_three_session_one_class as pto on pto.three_session_one_class_id = tsoc.id
+                 LEFT JOIN sys_party_member_information AS pmi ON find_in_set( pmi.id, pto.participate_id )
+        where tsoc.id = #{meetingId,jdbcType=VARCHAR}
+    </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from service_minute_meeting
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.partybuilding.webserver.entity.service.ServiceMinuteMeeting">
+    insert into service_minute_meeting (
+      id, minute_type, meeting_id,
+      meeting_recorder_id, recorder_time, minute_content
+      )
+    values (#{id,jdbcType=VARCHAR}, #{minuteType,jdbcType=VARCHAR}, #{meetingId,jdbcType=VARCHAR}, 
+      #{meetingRecorderId,jdbcType=VARCHAR}, #{recorderTime,jdbcType=TIMESTAMP}, #{minuteContent,jdbcType=LONGVARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.service.ServiceMinuteMeeting">
+    insert into service_minute_meeting
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="minuteType != null">
+        minute_type,
+      </if>
+      <if test="meetingId != null">
+        meeting_id,
+      </if>
+      <if test="meetingRecorderId != null">
+        meeting_recorder_id,
+      </if>
+      <if test="recorderTime != null">
+        recorder_time,
+      </if>
+      <if test="minuteContent != null">
+        minute_content,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="minuteType != null">
+        #{minuteType,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingId != null">
+        #{meetingId,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingRecorderId != null">
+        #{meetingRecorderId,jdbcType=VARCHAR},
+      </if>
+      <if test="recorderTime != null">
+        #{recorderTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="minuteContent != null">
+        #{minuteContent,jdbcType=LONGVARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.service.ServiceMinuteMeeting">
+    update service_minute_meeting
+    <set>
+      <if test="minuteType != null">
+        minute_type = #{minuteType,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingId != null">
+        meeting_id = #{meetingId,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingRecorderId != null">
+        meeting_recorder_id = #{meetingRecorderId,jdbcType=VARCHAR},
+      </if>
+      <if test="recorderTime != null">
+        recorder_time = #{recorderTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="minuteContent != null">
+        minute_content = #{minuteContent,jdbcType=LONGVARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKeyWithBLOBs" parameterType="com.partybuilding.webserver.entity.service.ServiceMinuteMeeting">
+    update service_minute_meeting
+    set minute_type = #{minuteType,jdbcType=VARCHAR},
+      meeting_id = #{meetingId,jdbcType=VARCHAR},
+      meeting_recorder_id = #{meetingRecorderId,jdbcType=VARCHAR},
+      recorder_time = #{recorderTime,jdbcType=TIMESTAMP},
+      minute_content = #{minuteContent,jdbcType=LONGVARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.service.ServiceMinuteMeeting">
+    update service_minute_meeting
+    set minute_content = #{minuteContent,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceExaminationQuestionMapper">
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceExaminationQuestion">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="examination_id" jdbcType="VARCHAR" property="examinationId" />
+    <result column="question_id" jdbcType="VARCHAR" property="questionId" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, examination_id, question_id
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from service_examination_question
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from service_examination_question
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+  <!--添加-->
+  <insert id="addIntoExamineQuestion" parameterType="java.lang.String">
+    insert into service_examination_question (id, examination_id, question_id
+      )
+    values (#{id,jdbcType=VARCHAR}, #{examinationId,jdbcType=VARCHAR}, #{questionId,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.service.ServiceExaminationQuestion">
+    insert into service_examination_question
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="examinationId != null">
+        examination_id,
+      </if>
+      <if test="questionId != null">
+        question_id,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="examinationId != null">
+        #{examinationId,jdbcType=VARCHAR},
+      </if>
+      <if test="questionId != null">
+        #{questionId,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.service.ServiceExaminationQuestion">
+    update service_examination_question
+    <set>
+      <if test="examinationId != null">
+        examination_id = #{examinationId,jdbcType=VARCHAR},
+      </if>
+      <if test="questionId != null">
+        question_id = #{questionId,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.service.ServiceExaminationQuestion">
+    update service_examination_question
+    set examination_id = #{examinationId,jdbcType=VARCHAR},
+      question_id = #{questionId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>

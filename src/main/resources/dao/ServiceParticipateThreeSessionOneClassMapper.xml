@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceParticipateThreeSessionOneClassMapper">
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceParticipateThreeSessionOneClass">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="three_session_one_class_id" jdbcType="VARCHAR" property="threeSessionOneClassId" />
+    <result column="participate_id" jdbcType="VARCHAR" property="participateId" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, three_session_one_class_id, participate_id
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from service_participate_three_session_one_class
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from service_participate_three_session_one_class
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.partybuilding.webserver.entity.service.ServiceParticipateThreeSessionOneClass">
+    insert into service_participate_three_session_one_class (id, three_session_one_class_id, participate_id
+      )
+    values (#{id,jdbcType=VARCHAR}, #{threeSessionOneClassId,jdbcType=VARCHAR}, #{participateId,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.service.ServiceParticipateThreeSessionOneClass">
+    insert into service_participate_three_session_one_class
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="threeSessionOneClassId != null">
+        three_session_one_class_id,
+      </if>
+      <if test="participateId != null">
+        participate_id,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="threeSessionOneClassId != null">
+        #{threeSessionOneClassId,jdbcType=VARCHAR},
+      </if>
+      <if test="participateId != null">
+        #{participateId,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.service.ServiceParticipateThreeSessionOneClass">
+    update service_participate_three_session_one_class
+    <set>
+      <if test="threeSessionOneClassId != null">
+        three_session_one_class_id = #{threeSessionOneClassId,jdbcType=VARCHAR},
+      </if>
+      <if test="participateId != null">
+        participate_id = #{participateId,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.service.ServiceParticipateThreeSessionOneClass">
+    update service_participate_three_session_one_class
+    set three_session_one_class_id = #{threeSessionOneClassId,jdbcType=VARCHAR},
+      participate_id = #{participateId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>

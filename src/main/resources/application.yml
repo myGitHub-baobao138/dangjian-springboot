@@ -1,0 +1,39 @@
+server:
+  port: 9090
+spring:
+  cache:
+    cache-names: userInfoCache1,userInfoCache2
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/party_building?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&serverTimezone=GMT%2B8
+    username: root
+    password: baozijiuban
+#    url: jdbc:mysql://111.229.100.173:3306/party_building?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&serverTimezone=GMT%2B8
+#    username: root
+#    password: baozijiuban
+
+
+  servlet:
+    multipart:
+      max-file-size: -1    #设置单个文件的最大值
+      max-request-size: -1  #设置单次请求的所有文件的最大值
+#  rabbitmq:
+#      host: localhost
+#      port: 5672
+#      username: root
+#      password: baozijiuban
+#      virtual-host: /
+#          # 开启消息发送确认
+#      publisher-confirms: true
+#      publisher-returns: true
+#      listener:
+#        simple:
+#          acknowledge-mode: manual
+mybatis:
+  type-aliases-package: com.partybuilding.webserver.entity
+  mapper-locations: classpath:dao/*Mapper.xml
+#  configuration:
+#      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#logging:
+#  level:
+#     com.partybuilding.webserver.dao : debug

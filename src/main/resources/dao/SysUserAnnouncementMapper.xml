@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.system.SysUserAnnouncementMapper">
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.system.SysUserAnnouncement">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="sys_wx_user_id" jdbcType="VARCHAR" property="sysWxUserId" />
+    <result column="sys_announcement_id" jdbcType="VARCHAR" property="sysAnnouncementId" />
+    <result column="state" jdbcType="BIT" property="state" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, sys_wx_user_id, sys_announcement_id, state
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from sys_user_announcement
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from sys_user_announcement
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.partybuilding.webserver.entity.system.SysUserAnnouncement">
+    insert into sys_user_announcement (id, sys_wx_user_id, sys_announcement_id, 
+      state)
+    values (#{id,jdbcType=INTEGER}, #{sysWxUserId,jdbcType=VARCHAR}, #{sysAnnouncementId,jdbcType=VARCHAR}, 
+      #{state,jdbcType=BIT})
+  </insert>
+  <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.system.SysUserAnnouncement">
+    insert into sys_user_announcement
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="sysWxUserId != null">
+        sys_wx_user_id,
+      </if>
+      <if test="sysAnnouncementId != null">
+        sys_announcement_id,
+      </if>
+      <if test="state != null">
+        state,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="sysWxUserId != null">
+        #{sysWxUserId,jdbcType=VARCHAR},
+      </if>
+      <if test="sysAnnouncementId != null">
+        #{sysAnnouncementId,jdbcType=VARCHAR},
+      </if>
+      <if test="state != null">
+        #{state,jdbcType=BIT},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.system.SysUserAnnouncement">
+    update sys_user_announcement
+    <set>
+      <if test="sysWxUserId != null">
+        sys_wx_user_id = #{sysWxUserId,jdbcType=VARCHAR},
+      </if>
+      <if test="sysAnnouncementId != null">
+        sys_announcement_id = #{sysAnnouncementId,jdbcType=VARCHAR},
+      </if>
+      <if test="state != null">
+        state = #{state,jdbcType=BIT},
+      </if>
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.system.SysUserAnnouncement">
+    update sys_user_announcement
+    set sys_wx_user_id = #{sysWxUserId,jdbcType=VARCHAR},
+      sys_announcement_id = #{sysAnnouncementId,jdbcType=VARCHAR},
+      state = #{state,jdbcType=BIT}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>

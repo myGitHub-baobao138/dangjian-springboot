@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.dynamic.DynamicClickLikeMapper">
+
+  <!---文章表基本列-->
+  <sql id="Article_BaseColumn">
+    dyarticles.id , title, content, source, contribute_time as contributeTime,check_time  as publishTime,browsing_amount as browsingAmount,praise_amount as praiseAmount
+	,sos.organization_name as academy, inf.name as contributor,1 as type
+  </sql>
+
+  <!---志愿活动表基本列-->
+  <sql id="Volunteer_BaseColumn">
+    service_volunteer_activity.id,activity_title title,activity_content content,4 as source,
+  submission_time contributeTime,review_time publishTime,reading_volume browsingAmount,like_number praiseAmount,
+  'xxx' as academy,
+  sys_party_member_information.name as contributor,2 as type
+  </sql>
+
+  <!---党校培训基本列-->
+  <sql id="PartySchool_BaseColumn">
+    dynamic_train_management.id,title,content,5 as  source,
+  publish_time contributeTime,publish_time publishTime,browsing_amount browingAmount,praise_amount PraiseAmount,
+  '重庆理工大学党总支' as academy,
+  sys_party_member_information.name as  contributor ,3  as  type
+  </sql>
+
+  <!--获得点赞列表的数据-->
+  <select id="selectClickLikeInfo" resultType="com.partybuilding.webserver.dto.dynamic.clickLike.ClickLikeDto">
+    select  <include refid="Article_BaseColumn"></include>
+  from dynamic_article_management as dyarticles
+    <!---获得投稿人姓名-->
+    LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+    LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+    WHERE dyarticles.check_status=1
+    <if test="organizationRank == 2">
+      and ( dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR}
+      or dyarticles.organization_id in(
+      select sos1.organization_id from sys_organizational_structure as sos1
+      where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+  UNION
+    <!---连接志愿活动表-->
+  select <include refid="Volunteer_BaseColumn" />
+  from service_volunteer_activity
+  left join sys_party_member_information on sys_party_member_information.id=service_volunteer_activity.activity_sponsor_id
+  where  service_volunteer_activity.approval_state=1
+    <if test="organizationRank == 2">
+      and (  service_volunteer_activity.organization_id = #{organizationId, jdbcType=VARCHAR}
+      or  service_volunteer_activity.organization_id in(
+      select sos1.organization_id from sys_organizational_structure as sos1
+      where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+  UNION
+    <!---连接党校培训表-->
+  select <include refid="PartySchool_BaseColumn" />
+  from dynamic_train_management
+    <!--获取投稿人姓名-->
+  left join sys_party_member_information on sys_party_member_information.id=dynamic_train_management.editor_id
+  where publish_status=1
+    <!--如果登录人员的等级是二级-->
+    <if test="organizationRank == 2">
+      and  ( dynamic_train_management.organization_id = #{organizationId, jdbcType=VARCHAR}
+      or  dynamic_train_management.organization_id in(
+      select sos1.organization_id from sys_organizational_structure as sos1
+      where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+  </select>
+
+  <!--根据输入框内容、时间模糊查询点赞列表的数据-->
+  <select id="selectClickLikeListBySearch"  resultType="com.partybuilding.webserver.dto.dynamic.clickLike.ClickLikeDto">
+    select
+    <include refid="Article_BaseColumn" />
+    from dynamic_article_management as dyarticles
+    <!---获得投稿人姓名-->
+    LEFT JOIN sys_organizational_structure as sos on dyarticles.organization_id = sos.organization_id
+    LEFT JOIN sys_party_member_information as inf on inf.id = dyarticles.contributor_id
+    WHERE dyarticles.check_status=1  and
+    <!--只输入内容时搜索点赞记录-->
+    <if test="inputContent != '' and  startTime == null and  endTime == null" >
+    concat(title,content) like  #{inputContent}
+    </if>
+    <!--只输入点赞时间搜索点赞记录-->
+    <if test="inputContent == '' and  startTime != null and  endTime != null " >
+      check_time between #{startTime}  and #{endTime}
+    </if>
+    <!--输入内容和点赞时间搜索点赞记录-->
+    <if test="inputContent != '' and  startTime != null and  endTime != null" >
+      concat(title,content) like  #{inputContent}
+      and check_time between #{startTime}  and  #{endTime}
+    </if>
+    <if test="organizationRank == 2">
+      and ( dyarticles.organization_id = #{organizationId, jdbcType=VARCHAR}
+      or dyarticles.organization_id in(
+      select sos1.organization_id from sys_organizational_structure as sos1
+      where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+     <!--连接志愿活动管理表-->
+      UNION
+      select <include refid="Volunteer_BaseColumn" />
+      from service_volunteer_activity
+      left join sys_party_member_information on sys_party_member_information.id=service_volunteer_activity.activity_sponsor_id
+      where  service_volunteer_activity.approval_state=1
+    <if test="organizationRank == 2">
+      and (  service_volunteer_activity.organization_id = #{organizationId, jdbcType=VARCHAR}
+      or  service_volunteer_activity.organization_id in(
+      select sos1.organization_id from sys_organizational_structure as sos1
+      where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+      and
+    <if test="inputContent != '' and  startTime == null and  endTime == null" >
+      concat(activity_title ,activity_content) like  #{inputContent}
+    </if>
+    <if test="inputContent == '' and  startTime != null and  endTime != null" >
+      activity_time between #{startTime}  and #{endTime}
+    </if>
+    <if test="inputContent != '' and  startTime != null and  endTime != null" >
+      concat(activity_title,activity_content) like  #{inputContent}
+      and activity_time between #{startTime}  and #{endTime}
+    </if>
+      UNION
+    <!---连接党校培训表-->
+      select <include refid="PartySchool_BaseColumn" />
+      from dynamic_train_management
+      left join sys_party_member_information on sys_party_member_information.id=dynamic_train_management.editor_id
+      where publish_status=1
+    <if test="organizationRank == 2">
+      and  ( dynamic_train_management.organization_id = #{organizationId, jdbcType=VARCHAR}
+      or  dynamic_train_management.organization_id in(
+      select sos1.organization_id from sys_organizational_structure as sos1
+      where sos1.higher_organization_id = #{organizationId, jdbcType=VARCHAR}))
+    </if>
+      and
+    <if test="inputContent != '' and  startTime == null and  endTime == null" >
+      concat(title  ,content) like  #{inputContent}
+    </if>
+    <if test="inputContent == '' and  startTime != null and  endTime != null" >
+      publish_time between #{startTime}  and #{endTime}
+    </if>
+    <if test="inputContent != '' and  startTime != null and  endTime != null" >
+      concat(title,content) like  #{inputContent}
+      and publish_time between #{startTime}  and  #{endTime}
+    </if>
+  </select>
+
+
+</mapper>

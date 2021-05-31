@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceActivityRegistrationMapper">
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceActivityRegistration">
+
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="volunteer_activity_id" jdbcType="VARCHAR" property="volunteerActivityId" />
+    <result column="applicant_id" jdbcType="VARCHAR" property="applicantId" />
+    <result column="registration_time" jdbcType="TIMESTAMP" property="registrationTime" />
+    <result column="register_identity" jdbcType="VARCHAR" property="registerIdentity"/>
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    id, volunteer_activity_id, applicant_id, registration_time,register_identity
+  </sql>
+
+  <resultMap id="selectInfo" type="com.partybuilding.webserver.dto.service.volunteer.SelectRegistrationDetailsDTO">
+    <result column="registration_time" jdbcType="TIMESTAMP" property="registrationTime"/>
+    <result column="name" jdbcType="VARCHAR" property="name"/>
+    <result column="register_identity" jdbcType="VARCHAR" property="registerIdentity"/>
+    <result column="contact_number" jdbcType="VARCHAR" property="contactNumber"/>
+  </resultMap>
+
+  <select id="selectInfoByActivityId" parameterType="java.lang.String" resultMap="selectInfo">
+    select sar.registration_time,spmi.name,sp.name register_identity,spmi.contact contact_number from
+		service_activity_registration sar
+		left join sys_party_member_information spmi on sar.applicant_id=spmi.id
+		LEFT JOIN sys_post sp on sp.id=sar.register_identity
+		where sar.volunteer_activity_id=#{activityId,jdbcType=VARCHAR}
+  </select>
+
+  <insert id="insertActivity" parameterType="com.partybuilding.webserver.dto.service.volunteer.InsertActivityDTO">
+    <selectKey keyProperty="uuid" resultType="java.lang.String" order="BEFORE">
+      select replace(uuid(),'-','')as uuid from dual
+    </selectKey>
+    insert into service_volunteer_activity(activity_source,activity_sponsor_id,id,
+    activity_state,activity_title,activity_content,activity_contact,contact_number,
+    activity_location,meeting_place,activity_time,registration_deadline,picture,annex,
+      submission_time,release_time,organization_id,activity_sponsor_identity,approval_state)
+     values(#{activitySource},#{activitySponsorId},#{uuid},#{activityState},#{activityTitle},
+     #{activityContent},#{activityContact},#{contactNumber},
+    #{activityLocation},#{meetingPlace},#{activityTime},#{activityDeadline},#{picture},#{annex},
+    now(),now(),#{organizationId},#{activitySponsorIdentity},#{approvalState})
+  </insert>
+
+  <update id="updateVolunteerActivity">
+     update  service_volunteer_activity set (activity_source,activity_sponsor_id,
+    activity_state,activity_title,activity_content,activity_contact,contact_number,
+    activity_location,meeting_place,activity_time,registration_deadline,picture,annex,
+      submission_time)
+     values(#{activitySource},#{activitySponsorId},#{activityState},#{activityTitle},
+     #{activityContent},#{activityContact},#{contactNumber},
+    #{activityLocation},#{meetingPlace},#{activityTime},#{activityDeadline},#{picture},#{annex},
+    now())
+    where id=#{id}
+  </update>
+
+</mapper>

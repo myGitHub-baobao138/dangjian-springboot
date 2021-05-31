@@ -1,0 +1,634 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.service.ServiceVolunteerActivityMapper">
+  <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.service.ServiceVolunteerActivity">
+    <id column="id" jdbcType="VARCHAR" property="id" />
+    <result column="activity_title" jdbcType="VARCHAR" property="activityTitle" />
+    <result column="activity_contact" jdbcType="VARCHAR" property="activityContact" />
+    <result column="activity_content" jdbcType="VARCHAR" property="activityContent" />
+    <result column="contact_number" jdbcType="VARCHAR" property="contactNumber" />
+    <result column="activity_location" jdbcType="VARCHAR" property="activityLocation" />
+    <result column="meeting_place" jdbcType="VARCHAR" property="meetingPlace" />
+    <result column="activity_time" jdbcType="TIMESTAMP" property="activityTime" />
+    <result column="picture" jdbcType="VARCHAR" property="picture" />
+    <result column="annex" jdbcType="VARCHAR" property="annex" />
+    <result column="activity_sponsor_id" jdbcType="VARCHAR" property="activitySponsorId" />
+    <result column="activity_state" jdbcType="VARCHAR" property="activityState" />
+    <result column="sign_up_number" jdbcType="INTEGER" property="signUpNumber" />
+    <result column="release_time" jdbcType="TIMESTAMP" property="releaseTime" />
+    <result column="reading_volume" jdbcType="INTEGER" property="readingVolume" />
+    <result column="activity_source" jdbcType="VARCHAR" property="activitySource" />
+    <result column="submission_time" jdbcType="TIMESTAMP" property="submissionTime" />
+    <result column="approval_state" jdbcType="VARCHAR" property="approvalState" />
+    <result column="reviewer_id" jdbcType="VARCHAR" property="reviewerId" />
+    <result column="review_time" jdbcType="TIMESTAMP" property="reviewTime" />
+    <result column="like_number" jdbcType="INTEGER" property="likeNumber" />
+    <result column="registration_deadline" jdbcType="TIMESTAMP" property="registrationDeadline" />
+    <result column="review_description" jdbcType="VARCHAR" property="reviewDescription" />
+    <result column="activity_sponsor_identity" jdbcType="VARCHAR" property="activitySponsorIdentity"/>
+  </resultMap>
+  <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="com.partybuilding.webserver.entity.service.ServiceVolunteerActivity">
+    <result column="activity_content" jdbcType="LONGVARCHAR" property="activityContent" />
+  </resultMap>
+  <resultMap id="selectVolunteer" type="com.partybuilding.webserver.dto.service.volunteer.SelectVolunteerDTO">
+    <result column="id" jdbcType="VARCHAR" property="id"/>
+    <result column="activity_title" jdbcType="VARCHAR" property="activityTitle"/>
+    <result column="activity_content" jdbcType="VARCHAR" property="activityContent"/>
+    <result column="activity_sponsor" jdbcType="VARCHAR" property="activitySponsor"/>
+    <result column="activity_sponsor_identity" jdbcType="VARCHAR" property="activitySponsorIdentity"/>
+    <result column="submission_time" jdbcType="TIMESTAMP" property="submissionTime"/>
+    <result column="approval_state" jdbcType="VARCHAR" property="approvalState"/>
+    <result column="reviewer" jdbcType="VARCHAR" property="reviewer"/>
+    <result column="review_time" jdbcType="TIMESTAMP" property="reviewTime"/>
+    <result column="activity_location" jdbcType="VARCHAR" property="activityLocation"/>
+    <result column="meeting_place" jdbcType="VARCHAR" property="meetingPlace"/>
+    <result column="activity_contact" jdbcType="VARCHAR" property="activityContact"/>
+    <result column="contact_number" jdbcType="VARCHAR" property="contactNumber"/>
+    <result column="registration_deadline" jdbcType="TIMESTAMP" property="registrationDeadline"/>
+    <result column="activity_time" jdbcType="TIMESTAMP" property="activityTime"/>
+    <result column="picture" jdbcType="VARCHAR" property="picture"/>
+    <result column="annex" jdbcType="VARCHAR" property="annex"/>
+  </resultMap>
+  <resultMap id="selectActivityRegistration" type="com.partybuilding.webserver.dto.service.volunteer.ActivityRegistrationDTO">
+    <result column="id" jdbcType="VARCHAR" property="id"/>
+    <result column="activity_title" jdbcType="VARCHAR" property="activityTitle"/>
+    <result column="activity_content" jdbcType="VARCHAR" property="activityContent"/>
+    <result column="activity_sponsor" jdbcType="VARCHAR" property="activitySponsor"/>
+    <result column="activity_state" jdbcType="VARCHAR" property="activityState"/>
+    <result column="activity_sponsor_identity" jdbcType="VARCHAR" property="activitySponsorIdentity"/>
+    <result column="activity_location" jdbcType="VARCHAR" property="activityLocation"/>
+    <result column="meeting_place" jdbcType="VARCHAR" property="meetingPlace"/>
+    <result column="activity_contact" jdbcType="VARCHAR" property="activityContact"/>
+    <result column="contact_number" jdbcType="VARCHAR" property="contactNumber"/>
+    <result column="registration_deadline" jdbcType="TIMESTAMP" property="registrationDeadline"/>
+    <result column="activity_time" jdbcType="TIMESTAMP" property="activityTime"/>
+    <result column="picture" jdbcType="VARCHAR" property="picture"/>
+    <result column="annex" jdbcType="VARCHAR" property="annex"/>
+    <result column="submission_time" jdbcType="TIMESTAMP" property="submissionTime"/>
+    <collection property="registrationNumber" ofType="java.lang.Integer" column="id" select="selectActivityRegistrationCount"/>
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, activity_title, activity_contact, contact_number, activity_location, meeting_place, 
+    activity_time, picture, annex, activity_sponsor_id, activity_state, sign_up_number, 
+    release_time, reading_volume, activity_source, submission_time, approval_state, reviewer_id, 
+    review_time, like_number, registration_deadline,review_description,activity_sponsor_identity
+  </sql>
+  <sql id="Blob_Column_List">
+    activity_content
+  </sql>
+
+  <!--通过活动id删除活动-->
+  <delete id="deleteActivityById" parameterType="java.lang.String">
+    delete from service_volunteer_activity where id = #{activityId}
+  </delete>
+
+  <!--修改活动状态-->
+  <update id="updateActivityState" parameterType="java.lang.String">
+    update service_volunteer_activity set activity_state=2, release_time = now() where id =#{activityId}
+  </update>
+
+  <!--通过页数查询活动报名信息-->
+  <select id="selectActivityRegistration" resultMap="selectActivityRegistration" parameterType="com.partybuilding.webserver.dto.service.volunteer.GetActivityByPageDTO">
+    select sva.id, activity_title,activity_content,spmi.name activity_sponsor,activity_state,
+		sp.name activity_sponsor_identity,activity_location,meeting_place,activity_contact,contact_number,
+		registration_deadline,activity_time,picture,annex,submission_time
+		from service_volunteer_activity sva
+		left JOIN sys_party_member_information spmi on sva.activity_sponsor_id = spmi.id
+		LEFT JOIN sys_party_member_information spmi1 on sva.reviewer_id = spmi1.id
+		LEFT JOIN sys_post sp on sva.activity_sponsor_identity = sp.id
+		where sva.id!=''
+		<if test="title!='' and title != null">
+          and activity_title like CONCAT(CONCAT('%',#{title,jdbcType=VARCHAR},'%'))
+        </if>
+        <if test="beginTime!='' and beginTime != null">
+          and activity_time like CONCAT(CONCAT('%',#{beginTime,jdbcType=VARCHAR},'%'))
+        </if>
+        <if test="activityState!='' and activityState != null">
+          and activity_state like CONCAT(CONCAT('%',#{activityState,jdbcType=VARCHAR},'%'))
+        </if>
+		limit ${pageSize*(currentPage-1)},#{pageSize}
+  </select>
+
+  <select id="selectActivityRegistrationCount" resultType="java.lang.Integer">
+    select count(sar.id) registration_number from service_activity_registration sar where volunteer_activity_id = #{id}
+  </select>
+
+
+  <!--查询所有活动显示在表格-->
+  <select id="selectVolunteer" resultMap="selectVolunteer">
+    select sva.id,activity_title,activity_content,spmi.`name` activity_sponsor,sp.`name` activity_sponsor_identity,
+    submission_time,approval_state,spmi.`name` reviewer,review_time
+		from service_volunteer_activity sva
+		left JOIN sys_party_member_information spmi on sva.activity_sponsor_id = spmi.id
+		LEFT JOIN sys_party_member_information spmi1 on sva.reviewer_id = spmi1.id
+		LEFT JOIN sys_party_organization_post spop on sva.activity_sponsor_id = spop.post_id
+		LEFT JOIN sys_post sp on spop.post_id = sp.id
+  </select>
+
+
+  <!--通过页数来获取活动信息-->
+  <select id="getActivityByPage" parameterType="com.partybuilding.webserver.dto.service.volunteer.GetActivityByPageDTO" resultMap="selectVolunteer">
+    select sva.id,activity_title,activity_content,spmi.`name` activity_sponsor,
+		sp.`name` activity_sponsor_identity,submission_time,
+    approval_state,spmi.`name` reviewer,review_time,activity_location,meeting_place,activity_contact,
+		contact_number,registration_deadline,activity_time,picture,annex
+		from service_volunteer_activity sva
+		left JOIN sys_party_member_information spmi on sva.activity_sponsor_id = spmi.id
+		LEFT JOIN sys_party_member_information spmi1 on sva.reviewer_id = spmi1.id
+		LEFT JOIN sys_post sp on sva.activity_sponsor_identity = sp.id limit ${pageSize*(currentPage-1)},#{pageSize}
+  </select>
+
+  <!--获取总的活动条数-->
+  <select id="getTotalPage" resultType="java.lang.Integer" parameterType="com.partybuilding.webserver.dto.service.volunteer.GetActivityByPageDTO">
+--     select count(*) from service_volunteer_activity
+    select count(*) from service_volunteer_activity sva
+    where sva.id !=''
+    <if test="title!='' and title != null">
+      and activity_title like CONCAT(CONCAT('%',#{title,jdbcType=VARCHAR},'%'))
+    </if>
+    <if test="beginTime!='' and beginTime != null">
+      and activity_time like CONCAT(CONCAT('%',#{beginTime,jdbcType=VARCHAR},'%'))
+    </if>
+    <if test="activityState!='' and activityState != null">
+      and activity_state like CONCAT(CONCAT('%',#{activityState,jdbcType=VARCHAR},'%'))
+    </if>
+  </select>
+
+  <!--关键字查询-->
+  <select id="keywordSearchVolunteer" parameterType="com.partybuilding.webserver.dto.service.volunteer.KeywordSearchVolunteerDTO"
+          resultMap="selectVolunteer">
+    select sva.id,activity_title,activity_content,spmi.`name` activity_sponsor,
+		sp.`name` activity_sponsor_identity,submission_time,
+    approval_state,spmi.`name` reviewer,review_time,activity_location,meeting_place,activity_contact,
+		contact_number,registration_deadline,activity_time,picture,annex
+		from service_volunteer_activity sva
+		left JOIN sys_party_member_information spmi on sva.activity_sponsor_id = spmi.id
+		LEFT JOIN sys_party_member_information spmi1 on sva.reviewer_id = spmi1.id
+		LEFT JOIN sys_post sp on sva.activity_sponsor_identity = sp.id
+      where sva.id !=''
+    <if test="content!=''">
+     and sva.activity_content like "%"#{content,jdbcType=VARCHAR}"%"
+    </if>
+   <if test="approvalState!=''"> and approval_state = #{approvalState,jdbcType=VARCHAR}</if>
+      limit ${pageSize*(currentPage-1)},#{pageSize}
+  </select>
+
+  <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.dto.service.volunteer.ActivityRegistrationDTO">
+    update service_volunteer_activity
+    <set>
+      <if test="activityTitle != null">
+        activity_title = #{activityTitle,jdbcType=VARCHAR},
+      </if>
+      <if test="activityContact != null">
+        activity_contact = #{activityContact,jdbcType=VARCHAR},
+      </if>
+      <if test="contactNumber != null">
+        contact_number = #{contactNumber,jdbcType=VARCHAR},
+      </if>
+      <if test="activityLocation != null">
+        activity_location = #{activityLocation,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingPlace != null">
+        meeting_place = #{meetingPlace,jdbcType=VARCHAR},
+      </if>
+      <if test="activityTime != null">
+        activity_time = #{activityTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="picture != null">
+        picture = #{picture,jdbcType=VARCHAR},
+      </if>
+      <if test="annex != null">
+        annex = #{annex,jdbcType=VARCHAR},
+      </if>
+      <if test="activitySponsorIdentity != null">
+        activity_sponsor_id = #{activitySponsorIdentity,jdbcType=VARCHAR},
+      </if>
+      <if test="activityState != null">
+        activity_state = #{activityState,jdbcType=VARCHAR},
+      </if>
+      <if test="signUpNumber != null and signUpNumber != ''">
+        sign_up_number = #{signUpNumber,jdbcType=INTEGER},
+      </if>
+      <if test="releaseTime != null">
+        release_time = #{releaseTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="readingVolume != null">
+        reading_volume = #{readingVolume,jdbcType=INTEGER},
+      </if>
+      <if test="activitySource != null">
+        activity_source = #{activitySource,jdbcType=VARCHAR},
+      </if>
+      <if test="submissionTime != null">
+        submission_time = #{submissionTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="approvalState != null">
+        approval_state = #{approvalState,jdbcType=VARCHAR},
+      </if>
+      <if test="reviewerId != null">
+        reviewer_id = #{reviewerId,jdbcType=VARCHAR},
+      </if>
+      <if test="reviewTime != null">
+        review_time = #{reviewTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="likeNumber != null and likeNumber != ''">
+        like_number = #{likeNumber,jdbcType=INTEGER},
+      </if>
+      <if test="activityContent != null">
+        activity_content = #{activityContent,jdbcType=LONGVARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+
+
+  <!--修改审核状态-->
+  <update id="examine">
+    update service_volunteer_activity set approval_state=#{approvalState,jdbcType=VARCHAR},review_time=#{date}
+    where id in
+    <foreach collection="id" item="ids" open="(" separator="," close=")">
+      #{ids,jdbcType=VARCHAR}
+    </foreach>
+  </update>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="ResultMapWithBLOBs">
+    select
+    <include refid="Base_Column_List" />
+    ,
+    <include refid="Blob_Column_List" />
+    from service_volunteer_activity
+    where id = #{id,jdbcType=VARCHAR}
+  </select>
+
+  <!--根据id查询志愿活动-->
+  <select id="searchVolunteerActivity" parameterType="java.lang.String"
+          resultType="com.partybuilding.webserver.dto.service.volunteer.ActivityInformationDTO">
+    select service_volunteer_activity.activity_title as title,
+      service_volunteer_activity.activity_content as content ,
+      service_volunteer_activity.activity_location as activityLocation,
+      service_volunteer_activity.meeting_place as meetingPlace,
+      service_volunteer_activity.activity_contact as activityContact,
+      service_volunteer_activity.contact_number as contactNumber,
+      service_volunteer_activity.activity_time as activityTime,
+      service_volunteer_activity.registration_deadline as registrationDeadline,
+      service_volunteer_activity.picture as picture,
+      service_volunteer_activity.annex as annex,
+      service_volunteer_activity.submission_time as submissionTime,
+      sys_party_member_information.`name` as activitySponsorName,
+      sys_post.`name` as activitySponsorPost
+    from service_volunteer_activity left join sys_party_member_information on service_volunteer_activity.activity_sponsor_id = sys_party_member_information.id left join sys_post on sys_party_member_information.post_id = sys_post.id
+    where service_volunteer_activity.id = #{id,jdbcType=VARCHAR}
+  </select>
+
+  <!--获取活动列表-->
+  <select id="getVolunteerActivityList"
+          resultType="com.partybuilding.webserver.dto.service.volunteer.SignUpActivityInformationDTO">
+    select service_volunteer_activity.activity_title as title,
+      service_volunteer_activity.activity_content as content,
+      service_volunteer_activity.registration_deadline as registrationDeadline,
+      service_volunteer_activity.activity_state as activityState,
+      service_volunteer_activity.sign_up_number as signUpNumber,
+      sys_party_member_information.`name` as activitySponsorName
+    from service_volunteer_activity left join sys_party_member_information on service_volunteer_activity.activity_sponsor_id = sys_party_member_information.id
+    where service_volunteer_activity.activity_source = '2' or service_volunteer_activity.approval_state='3'
+  </select>
+
+  <!--获取活动审核列表-->
+  <select id="getReviewActivityList" resultType="com.partybuilding.webserver.dto.service.volunteer.ReviewActivityDTO">
+    select service_volunteer_activity.activity_title as title,service_volunteer_activity.activity_content as content,service_volunteer_activity.submission_time as submissionTime,
+    service_volunteer_activity.approval_state as approvalState,service_volunteer_activity.review_time as reviewTime,sys_party_member_information.`name` as
+    activitySponsorName,sys_post.`name` as activitySponsorPost,sys_party_member_information.`name` as reviewer
+    from service_volunteer_activity left join sys_party_member_information on service_volunteer_activity.activity_sponsor_id =
+    sys_party_member_information.id left join sys_post on sys_party_member_information.post_id = sys_post.id
+    where service_volunteer_activity.approval_state = '1' or service_volunteer_activity.approval_state= '2'
+  </select>
+
+  <!--获取活动总数-->
+  <select id="getActivityCount" resultType="java.lang.Integer">
+    select count(*)
+    from service_volunteer_activity
+  </select>
+
+<!--获取活动审核列表-->
+  <select id="getReviewActivityCount" resultType="java.lang.Integer">
+    select count(*)
+    from service_volunteer_activity
+    where activity_source = '1' and approval_state != '3'
+  </select>
+
+  <!--获取报名人数-->
+  <select id="getSignUpNumber" resultType="java.lang.Integer">
+    select count(*)
+    from service_activity_registration
+    where volunteer_activity_id = #{id,jdbcType=VARCHAR}
+  </select>
+
+  <!--查看报名情况-->
+  <!--<select id="getSignUpInformation" resultType="integer">-->
+    <!--select count(*)-->
+    <!--from service_activity_registration-->
+    <!--where volunteer_activity_id = #{id,jdbcType=VARCHAR}-->
+  <!--</select>-->
+
+  <!--根据活动状态查询志愿活动-->
+  <select id="searchActivityByActivityState" resultMap="BaseResultMap">
+    select *
+    from service_volunteer_activity
+    where activity_state = #{activityState,jdbcType=VARCHAR}
+  </select>
+
+  <!--根据活动内容查询志愿活动-->
+  <select id="searchActivityByActivityContent" resultMap="BaseResultMap">
+    select *
+    from service_volunteer_activity
+    where activity_content like #{activityContent,jdbcType=VARCHAR}
+  </select>
+
+  <select id="getResisterDeadline" resultType="java.util.Date">
+    select registration_deadline
+    from service_volunteer_activity
+  </select>
+
+  <!--搜索截止时间-->
+  <select id="getRegistrationDeadline" resultType="java.util.Date">
+    select registration_deadline
+    from service_volunteer_activity
+    where (registration_deadline >= #{beginTime,jdbcType=TIMESTAMP} and #{endTime,jdbcType=TIMESTAMP} > registration_deadline )
+  </select>
+
+  <!--获取结束时间-->
+  <select id="getEndTime" resultType="java.util.Date">
+    select activity_time
+    from service_volunteer_activity
+    where activity_time >= #{beginTime,jdbcType=TIMESTAMP} and #{endTime,jdbcType=TIMESTAMP} > activity_time
+  </select>
+
+  <delete id="deleteVolunteerActivityById" parameterType="java.lang.String">
+    delete from service_volunteer_activity
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+
+
+  <insert id="insert" parameterType="com.partybuilding.webserver.entity.service.ServiceVolunteerActivity">
+    insert into service_volunteer_activity (id, activity_title, activity_contact,
+      contact_number, activity_location, meeting_place,
+      activity_time, picture, annex,
+      activity_sponsor_id, activity_state, sign_up_number,
+      release_time, reading_volume, activity_source,
+      submission_time, approval_state, reviewer_id,
+      review_time, like_number, activity_content
+      )
+    values (#{id,jdbcType=VARCHAR}, #{activityTitle,jdbcType=VARCHAR}, #{activityContact,jdbcType=VARCHAR},
+      #{contactNumber,jdbcType=VARCHAR}, #{activityLocation,jdbcType=VARCHAR}, #{meetingPlace,jdbcType=VARCHAR},
+      #{activityTime,jdbcType=TIMESTAMP}, #{picture,jdbcType=VARCHAR}, #{annex,jdbcType=VARCHAR},
+      #{activitySponsorId,jdbcType=VARCHAR}, #{activityState,jdbcType=VARCHAR}, #{signUpNumber,jdbcType=INTEGER},
+      #{releaseTime,jdbcType=TIMESTAMP}, #{readingVolume,jdbcType=INTEGER}, #{activitySource,jdbcType=VARCHAR},
+      #{submissionTime,jdbcType=TIMESTAMP}, #{approvalState,jdbcType=VARCHAR}, #{reviewerId,jdbcType=VARCHAR},
+      #{reviewTime,jdbcType=TIMESTAMP}, #{likeNumber,jdbcType=INTEGER}, #{activityContent,jdbcType=LONGVARCHAR}
+      )
+  </insert>
+
+  <!--新增志愿活动-->
+  <insert id="addVolunteerActivity" parameterType="com.partybuilding.webserver.dto.service.volunteer.ServiceAddVolunteerActivityDTO">
+    insert into service_volunteer_activity (id, activity_title, activity_contact,
+    contact_number, activity_location, meeting_place,
+    activity_time, picture, annex,
+    activity_sponsor_id, activity_state,
+    release_time,activity_source,activity_content,
+    registration_deadline
+    )
+    values (#{id,jdbcType=VARCHAR}, #{activityTitle,jdbcType=VARCHAR}, #{activityContact,jdbcType=VARCHAR},
+    #{contactNumber,jdbcType=VARCHAR}, #{activityLocation,jdbcType=VARCHAR}, #{meetingPlace,jdbcType=VARCHAR},
+    #{activityTime,jdbcType=TIMESTAMP}, #{picture,jdbcType=VARCHAR}, #{annex,jdbcType=VARCHAR},
+    #{activitySponsorId,jdbcType=VARCHAR}, #{activityState,jdbcType=VARCHAR},
+    #{releaseTime,jdbcType=TIMESTAMP},#{activitySource,jdbcType=VARCHAR},#{activityContent,jdbcType=LONGVARCHAR},
+    #{registrationDeadline,jdbcType=TIMESTAMP}
+    )
+  </insert>
+
+  <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.service.ServiceVolunteerActivity">
+    insert into service_volunteer_activity
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="activityTitle != null">
+        activity_title,
+      </if>
+      <if test="activityContact != null">
+        activity_contact,
+      </if>
+      <if test="contactNumber != null">
+        contact_number,
+      </if>
+      <if test="activityLocation != null">
+        activity_location,
+      </if>
+      <if test="meetingPlace != null">
+        meeting_place,
+      </if>
+      <if test="activityTime != null">
+        activity_time,
+      </if>
+      <if test="picture != null">
+        picture,
+      </if>
+      <if test="annex != null">
+        annex,
+      </if>
+      <if test="activitySponsorId != null">
+        activity_sponsor_id,
+      </if>
+      <if test="activityState != null">
+        activity_state,
+      </if>
+      <if test="signUpNumber != null">
+        sign_up_number,
+      </if>
+      <if test="releaseTime != null">
+        release_time,
+      </if>
+      <if test="readingVolume != null">
+        reading_volume,
+      </if>
+      <if test="activitySource != null">
+        activity_source,
+      </if>
+      <if test="submissionTime != null">
+        submission_time,
+      </if>
+      <if test="approvalState != null">
+        approval_state,
+      </if>
+      <if test="reviewerId != null">
+        reviewer_id,
+      </if>
+      <if test="reviewTime != null">
+        review_time,
+      </if>
+      <if test="likeNumber != null">
+        like_number,
+      </if>
+      <if test="activityContent != null">
+        activity_content,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=VARCHAR},
+      </if>
+      <if test="activityTitle != null">
+        #{activityTitle,jdbcType=VARCHAR},
+      </if>
+      <if test="activityContact != null">
+        #{activityContact,jdbcType=VARCHAR},
+      </if>
+      <if test="contactNumber != null">
+        #{contactNumber,jdbcType=VARCHAR},
+      </if>
+      <if test="activityLocation != null">
+        #{activityLocation,jdbcType=VARCHAR},
+      </if>
+      <if test="meetingPlace != null">
+        #{meetingPlace,jdbcType=VARCHAR},
+      </if>
+      <if test="activityTime != null">
+        #{activityTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="picture != null">
+        #{picture,jdbcType=VARCHAR},
+      </if>
+      <if test="annex != null">
+        #{annex,jdbcType=VARCHAR},
+      </if>
+      <if test="activitySponsorId != null">
+        #{activitySponsorId,jdbcType=VARCHAR},
+      </if>
+      <if test="activityState != null">
+        #{activityState,jdbcType=VARCHAR},
+      </if>
+      <if test="signUpNumber != null">
+        #{signUpNumber,jdbcType=INTEGER},
+      </if>
+      <if test="releaseTime != null">
+        #{releaseTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="readingVolume != null">
+        #{readingVolume,jdbcType=INTEGER},
+      </if>
+      <if test="activitySource != null">
+        #{activitySource,jdbcType=VARCHAR},
+      </if>
+      <if test="submissionTime != null">
+        #{submissionTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="approvalState != null">
+        #{approvalState,jdbcType=VARCHAR},
+      </if>
+      <if test="reviewerId != null">
+        #{reviewerId,jdbcType=VARCHAR},
+      </if>
+      <if test="reviewTime != null">
+        #{reviewTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="likeNumber != null">
+        #{likeNumber,jdbcType=INTEGER},
+      </if>
+      <if test="activityContent != null">
+        #{activityContent,jdbcType=LONGVARCHAR},
+      </if>
+    </trim>
+  </insert>
+
+  <!--编辑志愿活动-->
+  <update id="editVolunteerActivity" parameterType="com.partybuilding.webserver.dto.service.volunteer.ServiceEditVolunteerActivityDTO">
+    update service_volunteer_activity
+    set activity_contact = #{activityContact,jdbcType=VARCHAR},
+      contact_number = #{contactNumber,jdbcType=VARCHAR},
+      activity_location = #{activityLocation,jdbcType=VARCHAR},
+      meeting_place = #{meetingPlace,jdbcType=VARCHAR},
+      activity_time = #{activityTime,jdbcType=TIMESTAMP},
+      activity_content = #{activityContent,jdbcType=LONGVARCHAR},
+      registration_deadline = #{registrationDeadline,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+
+  <!--发布志愿活动-->
+  <update id="releaseActivity" parameterType="com.partybuilding.webserver.dto.service.volunteer.ServiceReleaseActivityDTO">
+    update service_volunteer_activity
+    set
+    activity_state = '2',
+    release_time = #{releaseTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=VARCHAR} and #{releaseTime,jdbcType=TIMESTAMP} > registration_deadline
+  </update>
+
+  <!--改变活动状态为报名截止-->
+  <update id="changeStateToDeadline" parameterType="date">
+    update service_volunteer_activity
+    set
+    activity_state = '3'
+    where registration_deadline = #{registrationDeadline,jdbcType=TIMESTAMP}
+  </update>
+
+  <!--改变活动状态为活动结束-->
+  <update id="changeStateToEnd" parameterType="date">
+    update service_volunteer_activity
+    set
+    activity_state = '4'
+    where activity_time = #{endTime,jdbcType=TIMESTAMP}
+  </update>
+
+  <!--审核志愿活动-->
+  <update id="reviewVolunteerActivity" parameterType="com.partybuilding.webserver.dto.service.volunteer.ServiceReviewVolunteerActivityDTO">
+    update service_volunteer_activity
+    set
+    activity_state = '2',
+    <if test="result == 1">
+      approval_state='3',
+      release_time = #{reviewTime,jdbcType=TIMESTAMP},
+    </if>
+    <if test="result == 2">
+      approval_state='2',
+    </if>
+    reviewer_id=#{reviewerId,jdbcType=VARCHAR},
+    review_time = #{reviewTime,jdbcType=TIMESTAMP},
+    review_description = #{reviewDescription,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+
+
+  <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.service.ServiceVolunteerActivity">
+    update service_volunteer_activity
+    set activity_title = #{activityTitle,jdbcType=VARCHAR},
+      activity_contact = #{activityContact,jdbcType=VARCHAR},
+      contact_number = #{contactNumber,jdbcType=VARCHAR},
+      activity_location = #{activityLocation,jdbcType=VARCHAR},
+      meeting_place = #{meetingPlace,jdbcType=VARCHAR},
+      activity_time = #{activityTime,jdbcType=TIMESTAMP},
+      picture = #{picture,jdbcType=VARCHAR},
+      annex = #{annex,jdbcType=VARCHAR},
+      activity_sponsor_id = #{activitySponsorId,jdbcType=VARCHAR},
+      activity_state = #{activityState,jdbcType=VARCHAR},
+      sign_up_number = #{signUpNumber,jdbcType=INTEGER},
+      release_time = #{releaseTime,jdbcType=TIMESTAMP},
+      reading_volume = #{readingVolume,jdbcType=INTEGER},
+      activity_source = #{activitySource,jdbcType=VARCHAR},
+      submission_time = #{submissionTime,jdbcType=TIMESTAMP},
+      approval_state = #{approvalState,jdbcType=VARCHAR},
+      reviewer_id = #{reviewerId,jdbcType=VARCHAR},
+      review_time = #{reviewTime,jdbcType=TIMESTAMP},
+      like_number = #{likeNumber,jdbcType=INTEGER}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+</mapper>

@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.partybuilding.webserver.dao.system.SysOperationLogMapper">
+    <resultMap id="BaseResultMap" type="com.partybuilding.webserver.entity.system.SysOperationLog">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="operation_time" jdbcType="TIMESTAMP" property="operationTime"/>
+        <result column="operation_content" jdbcType="VARCHAR" property="operationContent"/>
+        <result column="operation_page" jdbcType="VARCHAR" property="operationPage"/>
+        <result column="party_id" jdbcType="VARCHAR" property="partyId"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+    id, operation_time, operation_content, operation_page,party_id
+  </sql>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from sys_operation_log
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from sys_operation_log
+    where id = #{id,jdbcType=VARCHAR}
+  </delete>
+    <insert id="insert" parameterType="com.partybuilding.webserver.entity.system.SysOperationLog">
+    insert into sys_operation_log (id, operation_time, operation_content,
+      operation_page, party_id)
+    values (#{id,jdbcType=VARCHAR}, #{operationTime,jdbcType=TIMESTAMP}, #{operationContent,jdbcType=VARCHAR},
+      #{operationPage,jdbcType=VARCHAR}, #{partyId,jdbcType=VARCHAR})
+  </insert>
+    <insert id="insertSelective" parameterType="com.partybuilding.webserver.entity.system.SysOperationLog">
+        insert into sys_operation_log
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="operationTime != null">
+                operation_time,
+            </if>
+            <if test="operationContent != null">
+                operation_content,
+            </if>
+            <if test="operationPage != null">
+                operation_page,
+            </if>
+            <if test="partyId != null">
+                party_id,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="operationTime != null">
+                #{operationTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="operationContent != null">
+                #{operationContent,jdbcType=VARCHAR},
+            </if>
+            <if test="operationPage != null">
+                #{operationPage,jdbcType=VARCHAR},
+            </if>
+            <if test="partyId != null">
+                #{partyId,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective" parameterType="com.partybuilding.webserver.entity.system.SysOperationLog">
+        update sys_operation_log
+        <set>
+            <if test="operationTime != null">
+                operation_time = #{operationTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="operationContent != null">
+                operation_content = #{operationContent,jdbcType=VARCHAR},
+            </if>
+            <if test="operationPage != null">
+                operation_page = #{operationPage,jdbcType=VARCHAR},
+            </if>
+            <if test="partyId != null">
+                party_id = #{partyId,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.partybuilding.webserver.entity.system.SysOperationLog">
+    update sys_operation_log
+    set operation_time = #{operationTime,jdbcType=TIMESTAMP},
+      operation_content = #{operationContent,jdbcType=VARCHAR},
+      operation_page = #{operationPage,jdbcType=VARCHAR},
+      party_id = #{partyId,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=VARCHAR}
+  </update>
+
+    <!--丹丹加的 批量新增日志记录-->
+    <insert id="insertManyLogs" parameterType="java.util.List">
+        insert into sys_operation_log
+        (id, operation_time, operation_content, operation_page, party_id )
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id},#{item.operationTime},#{item.operationContent},#{item.operationPage},#{item.partyId}
+            )
+        </foreach>
+    </insert>
+
+    <!--查询操作日志结果图-->
+    <resultMap id="findOperationLogResultMap"
+               type="com.partybuilding.webserver.dto.system.operationLog.OperationLogDTO">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="operation_time" jdbcType="TIMESTAMP" property="operationDate"/>
+        <result column="operation_content" jdbcType="VARCHAR" property="operationContent"/>
+        <result column="operation_page" jdbcType="VARCHAR" property="operationPage"/>
+        <result column="operator_name" jdbcType="VARCHAR" property="operatorName"/>
+        <result column="post_name" jdbcType="VARCHAR" property="postName"/>
+    </resultMap>
+
+    <!--查询操作日志-->
+    <select id="findOperationLog"
+            parameterType="com.partybuilding.webserver.dto.system.operationLog.FindOperationLogPageInfo"
+            resultMap="findOperationLogResultMap">
+
+        select  sol.id, sol.operation_time, sol.operation_content, sol.operation_page,spmi.name
+        as operator_name,group_concat(distinct post.name Separator ' ') as post_name
+        from sys_party_member_information spmi,sys_operation_log sol,sys_post post,sys_party_organization_post spop
+        where post.id = spop.post_id and spop.party_id = sol.party_id
+        and spmi.id = sol.party_id
+        <if test="content!=null and content!=''">
+          and sol.operation_content like concat('%',#{content},'%')
+        </if>
+        <if test="name!=null and name!=''">
+          and spmi.name = #{name}
+        </if>
+        group by sol.id
+
+
+</select>
+
+    <!--添加一条操作日志-->
+    <insert id="addOperationLog" parameterType="com.partybuilding.webserver.entity.system.SysOperationLog">
+     insert into sys_operation_log (id, operation_time, operation_content,
+      operation_page, party_id)
+    values (#{id,jdbcType=VARCHAR}, #{operationTime,jdbcType=TIMESTAMP}, #{operationContent,jdbcType=VARCHAR},
+      #{operationPage,jdbcType=VARCHAR}, #{partyId,jdbcType=VARCHAR})
+  </insert>
+
+    <!--查询操作人员姓名-->
+    <select id="findOperatorName" parameterType="java.lang.String" resultType="java.lang.String">
+        select distinct spmi.name as operator_name  from sys_party_member_information spmi,sys_operation_log sol where spmi.id = sol.party_id and spmi.name like CONCAT('%',#{operatorName,jdbcType=VARCHAR},'%')
+  </select>
+</mapper>
